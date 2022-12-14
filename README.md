@@ -7,3 +7,5 @@ Una cuarta placa Arduino MKR 1310 actuando como concentrador, conectada a un PC 
 Fotorresistencia: https://www.luisllamas.es/medir-nivel-luz-con-arduino-y-fotoresistencia-ldr/
 
 Termistor: https://www.luisllamas.es/medir-temperatura-con-arduino-y-termistor-mf52/
+
+LCD1602: https://naylampmechatronics.com/blog/34_tutorial-lcd-conectando-tu-arduino-a-un-lcd1602-y-lcd2004.html
