@@ -1,3 +1,4 @@
 {
-    "board": "arduino:samd:mkrwan1310"
+    "board": "arduino:samd:mkrwan1310",
+    "port": "COM4"
 }
