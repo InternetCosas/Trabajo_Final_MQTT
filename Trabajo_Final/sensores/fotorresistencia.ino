@@ -1,3 +1,7 @@
+/*
+ * Resistencia de 470 ohm
+ */
+
 const int LDR_Apin = A0;
 const int LDR_Dpin = 2;
 
