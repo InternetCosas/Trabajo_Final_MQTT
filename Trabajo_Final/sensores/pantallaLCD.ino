@@ -1,1 +1,1 @@
-//pantalla LCD05
+//pantalla LCD05 ffgf
