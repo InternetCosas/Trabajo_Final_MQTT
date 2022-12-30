@@ -1,25 +1,11 @@
-/* ---------------------------------------------------------------------
- *  Ejemplo MKR1310_LoRa_SendReceive_Binary
- *  Práctica 3
- *  Asignatura (GII-IoT)
- *  
- *  Basado en el ejemplo MKR1310_LoRa_SendReceive_WithCallbacks,
- *  muestra cómo es posible comunicar los parámetros de 
- *  configuración del transceiver entre nodos LoRa en
- *  formato binario *  
- *  
- *  Este ejemplo requiere de una versión modificada
- *  de la librería Arduino LoRa (descargable desde 
- *  CV de la asignatura.
- *  
- *  También usa la librería Arduino_BQ24195 
- *  https://github.com/arduino-libraries/Arduino_BQ24195
- * ---------------------------------------------------------------------
+/*
+ * Cósigo del concentrador
  */
 
 #include <SPI.h>             
 #include <LoRa.h>
 #include <Arduino_PMIC.h>
+#include <Regexp.h>
 
 #define TX_LAPSE_MS          10000
 
@@ -52,8 +38,7 @@ uint8_t light_measurement = 0;
 // --------------------------------------------------------------------
 // Setup function
 // --------------------------------------------------------------------
-void setup() 
-{
+void setup() {
   Serial.begin(115200);  
   while (!Serial); 
 
@@ -126,14 +111,27 @@ void loop() {
     static uint32_t tx_begin_ms = 0;
 
     if(Serial.available() > 0) {  // Si se encuentra algo que leer 
-        bright_wait = (uint8_t)(Serial.readStringUntil('\n').toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
-        SerialUSB.println("\n=============================================================");
-        SerialUSB.print("The delay between temperature measurements has been changed to: ");
-        SerialUSB.print(bright_wait);
-        SerialUSB.println("ms");
-        SerialUSB.println("=============================================================");
-        uint8_t payload = bright_wait;
-        sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
+        String input = Serial.readStringUntil('\n');
+
+        char Buf[50];
+        input.toCharArray(Buf, 50);
+
+        MatchState ms;
+        ms.Target(Buf);
+
+        char bright_result = ms.Match("^bright [0-9]+"); // Orden para modificar el tiempo entre una medida de luz y la siguiente
+
+        if (bright_result == REGEXP_MATCHED) {
+          int spacePositon = input.indexOf(" ");
+          bright_wait = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+          SerialUSB.println("\n=============================================================");
+          SerialUSB.print("The delay between temperature measurements has been changed to: ");
+          SerialUSB.print((int)(bright_wait * 1000));
+          SerialUSB.println("ms");
+          SerialUSB.println("=============================================================");
+          uint8_t payload = bright_wait;
+          sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
+        }
     }
 }
 
