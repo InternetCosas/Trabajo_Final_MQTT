@@ -130,7 +130,46 @@ void loop() {
           SerialUSB.println("ms");
           SerialUSB.println("=============================================================");
           uint8_t payload = bright_wait;
-          sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
+          //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
+
+          if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+            transmitting = true;
+            txDoneFlag = false;
+            tx_begin_ms = millis();
+        
+            sendMessage(payload, msgCount);
+            Serial.print("Sending new brightness measurements delay (");
+            Serial.print(msgCount++);
+            Serial.print("): ");
+            Serial.println(payload);
+    }                  
+
+    if (transmitting && txDoneFlag) {
+        uint32_t TxTime_ms = millis() - tx_begin_ms;
+        Serial.print("----> TX completed in ");
+        Serial.print(TxTime_ms);
+        Serial.println(" msecs");
+        
+        // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+        uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+        lastSendTime_ms = tx_begin_ms; 
+        float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+        
+        Serial.print("Duty cycle: ");
+        Serial.print(duty_cycle, 1);
+        Serial.println(" %\n");
+
+        // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+        if (duty_cycle > 1.0f) {
+        txInterval_ms = TxTime_ms * 100;
+        }
+        
+        transmitting = false;
+        
+        // Reactivamos la recepción de mensajes, que se desactiva
+        // en segundo plano mientras se transmite
+        LoRa.receive();   
+    }
         }
     }
 }
@@ -162,7 +201,7 @@ void sendPayload(uint32_t lastSendTime_ms, uint16_t msgCount, uint32_t txInterva
         Serial.print("Sending new brightness measurements delay (");
         Serial.print(msgCount++);
         Serial.print("): ");
-        Serial.print(payload);
+        Serial.println(payload);
     }                  
 
     if (transmitting && txDoneFlag) {
@@ -250,6 +289,7 @@ void onReceive(int packetSize) {
     Serial.println(bright_measurement);
     Serial.print("Remote direct light measurement: ");
     Serial.println(light_measurement);
+    
   } else {
     Serial.print("Unexpected payload size: ");
     Serial.print(receivedBytes);
