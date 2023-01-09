@@ -34,7 +34,7 @@ static uint16_t msgCount = 0;
 
 const int LDR_Apin = A1;
 const int LDR_Dpin = 2;
-int wait = 15000;
+int wait = 10000;
 uint8_t d_read = -1;
 uint16_t a_read = -1;
 
@@ -280,13 +280,13 @@ void TxFinished() {
 }
 
 void brightnesMesure() {
+  delay(wait);
   d_read = digitalRead(LDR_Dpin);  // Si la luz da directamente al sensor da 1, en caso contrario 0
   a_read = analogRead(LDR_Apin);  // Nivel de luminosidad de 0 a 1023
   SerialUSB.print("\nDirect light: ");
   SerialUSB.println(d_read);
   SerialUSB.print("Brightness level: ");
   SerialUSB.println(a_read);
-  delay(wait);
 }
 
 void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
