@@ -134,7 +134,8 @@ void loop() {
 
           if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
             transmitting = true;
-            txDoneFlag = false;
+            //txDoneFlag = false;
+            txDoneFlag = true;
             tx_begin_ms = millis();
         
             sendMessage(payload, msgCount);
@@ -201,7 +202,7 @@ void sendPayload(uint32_t lastSendTime_ms, uint16_t msgCount, uint32_t txInterva
         Serial.print("Sending new brightness measurements delay (");
         Serial.print(msgCount++);
         Serial.print("): ");
-        Serial.println(payload);
+        Serial.print(payload);
     }                  
 
     if (transmitting && txDoneFlag) {
@@ -306,5 +307,4 @@ void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
     Serial.print(payload[i], HEX);
     Serial.print(" ");
   }
-  Serial.print("\n");
 }
