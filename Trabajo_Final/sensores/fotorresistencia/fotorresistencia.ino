@@ -294,5 +294,4 @@ void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
     Serial.print(payload[i], HEX);
     Serial.print(" ");
   }
-  Serial.print("\n");
 }
