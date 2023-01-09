@@ -30,10 +30,11 @@ double bandwidth_kHz[10] = {7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3,
 LoRaConfig_t thisNodeConf   = { 9, 7, 5, 2};
 int remoteRSSI = 0;
 float remoteSNR = 0;
+static uint16_t msgCount = 0;
 
 const int LDR_Apin = A1;
 const int LDR_Dpin = 2;
-int wait = 10000;
+int wait = 15000;
 
 
 void setup() {
@@ -105,7 +106,6 @@ void setup() {
 void loop() {
 
   static uint32_t lastSendTime_ms = 0;
-  static uint16_t msgCount = 0;
   static uint32_t txInterval_ms = TX_LAPSE_MS;
   static uint32_t tx_begin_ms = 0;
 
@@ -153,7 +153,7 @@ void sendPayload(uint32_t lastSendTime_ms, uint16_t msgCount, uint32_t txInterva
         tx_begin_ms = millis();
     
         sendMessage(payload, payloadLength, msgCount, d_read);
-        Serial.print("Sending new temperature measurements (");
+        Serial.print("Sending new brightness measurements (");
         Serial.print(msgCount++);
         Serial.print("): ");
         printBinaryPayload(payload, payloadLength);
@@ -230,11 +230,13 @@ void onReceive(int packetSize) {
   Serial.print(" dBm\nSNR: " + String(LoRa.packetSnr()));
   Serial.println(" dB");
 
+  Serial.print("\n=============================================\n");
   wait = (int)incomingConfig;
   wait = wait * 1000;
   Serial.print("New delay configuration: ");
   Serial.print(wait);
   Serial.println(" ms.");
+  Serial.print("=============================================\n");
 }
 
 void TxFinished() {

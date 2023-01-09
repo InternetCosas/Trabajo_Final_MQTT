@@ -1,5 +1,5 @@
 /*
- * Cósigo del concentrador
+ * Código del concentrador
  */
 
 #include <SPI.h>             
@@ -125,7 +125,7 @@ void loop() {
           int spacePositon = input.indexOf(" ");
           bright_wait = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
           SerialUSB.println("\n=============================================================");
-          SerialUSB.print("The delay between temperature measurements has been changed to: ");
+          SerialUSB.print("The delay between brightness measurements has been changed to: ");
           SerialUSB.print((int)(bright_wait * 1000));
           SerialUSB.println("ms");
           SerialUSB.println("=============================================================");
@@ -246,8 +246,10 @@ void onReceive(int packetSize) {
   // Actualizamos remoteNodeConf y lo mostramos
   if (receivedBytes == 2) {
     bright_measurement = *((uint16_t*)buffer);
-    Serial.print("Remote temperature measurement: ");
-    Serial.print(bright_measurement);
+    Serial.print("Remote brightness measurement: ");
+    Serial.println(bright_measurement);
+    Serial.print("Remote direct light measurement: ");
+    Serial.println(light_measurement);
   } else {
     Serial.print("Unexpected payload size: ");
     Serial.print(receivedBytes);
