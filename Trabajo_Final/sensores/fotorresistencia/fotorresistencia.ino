@@ -35,6 +35,8 @@ static uint16_t msgCount = 0;
 const int LDR_Apin = A1;
 const int LDR_Dpin = 2;
 int wait = 15000;
+uint8_t d_read = -1;
+uint16_t a_read = -1;
 
 
 void setup() {
@@ -112,19 +114,53 @@ void loop() {
   uint8_t payload[2];
   uint8_t payloadLength = 2;
 
-  uint8_t d_read = digitalRead(LDR_Dpin);  // Si la luz da directamente al sensor da 1, en caso contrario 0
-  uint16_t a_read = analogRead(LDR_Apin);  // Nivel de luminosidad de 0 a 1023
-  SerialUSB.print("\nDirect light: ");
-  SerialUSB.println(d_read);
-  SerialUSB.print("Brightness level: ");
-  SerialUSB.println(a_read);
-  
+  d_read = -1;
+  a_read = -1;
+  if(!transmitting) {
+    brightnesMesure();
+  }
   memcpy(payload, &a_read, payloadLength);  // Guardamos el valor de luminosidad en un array para mandarlo por LoRa posteriormente al concentrador
-  Serial.print("Sended brightness measurements: ");
-  printBinaryPayload(payload, payloadLength+1);
-  sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload, payloadLength, d_read);
+  if (d_read != -1 && a_read != -1) {
+    //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload, payloadLength, d_read);
+    if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+        transmitting = true;
+        txDoneFlag = false;
+        tx_begin_ms = millis();
+    
+        sendMessage(payload, payloadLength, msgCount, d_read);
+        Serial.print("Sending new brightness measurements (");
+        Serial.print(msgCount++);
+        Serial.print("): ");
+        printBinaryPayload(payload, payloadLength);
+    }                  
 
-  delay(wait);
+    if (transmitting && txDoneFlag) {
+        uint32_t TxTime_ms = millis() - tx_begin_ms;
+        Serial.print("----> TX completed in ");
+        Serial.print(TxTime_ms);
+        Serial.println(" msecs");
+        
+        // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+        uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+        lastSendTime_ms = tx_begin_ms; 
+        float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+        
+        Serial.print("Duty cycle: ");
+        Serial.print(duty_cycle, 1);
+        Serial.println(" %\n");
+
+        // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+        if (duty_cycle > 1.0f) {
+        txInterval_ms = TxTime_ms * 100;
+        }
+        
+        transmitting = false;
+        
+        // Reactivamos la recepción de mensajes, que se desactiva
+        // en segundo plano mientras se transmite
+        LoRa.receive();   
+    }
+  }
 }
 
 // --------------------------------------------------------------------
@@ -241,6 +277,16 @@ void onReceive(int packetSize) {
 
 void TxFinished() {
   txDoneFlag = true;
+}
+
+void brightnesMesure() {
+  d_read = digitalRead(LDR_Dpin);  // Si la luz da directamente al sensor da 1, en caso contrario 0
+  a_read = analogRead(LDR_Apin);  // Nivel de luminosidad de 0 a 1023
+  SerialUSB.print("\nDirect light: ");
+  SerialUSB.println(d_read);
+  SerialUSB.print("Brightness level: ");
+  SerialUSB.println(a_read);
+  delay(wait);
 }
 
 void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
