@@ -1,16 +1,16 @@
 /*
- * Resistencia de 470 ohm
+ * Código del concentrador
  */
 
-#include <string.h>
 #include <SPI.h>             
 #include <LoRa.h>
 #include <Arduino_PMIC.h>
+#include <Regexp.h>
 
 #define TX_LAPSE_MS          10000
 
 // NOTA: Ajustar estas variables 
-const uint8_t localAddress = 0xB1;     // Dirección de este dispositivo
+const uint8_t localAddress = 0xB0;     // Dirección de este dispositivo
 uint8_t destination = 0xFF;            // Dirección de destino, 0xFF es la dirección de broadcast
 
 volatile bool txDoneFlag = true;       // Flag para indicar cuando ha finalizado una transmisión
@@ -30,19 +30,15 @@ double bandwidth_kHz[10] = {7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3,
 LoRaConfig_t thisNodeConf   = { 9, 7, 5, 2};
 int remoteRSSI = 0;
 float remoteSNR = 0;
-static uint16_t msgCount = 0;
 
-const int LDR_Apin = A1;
-const int LDR_Dpin = 2;
-int wait = 10000;
-uint8_t d_read = -1;
-uint16_t a_read = -1;
+uint16_t bright_wait = 10000;
+uint16_t bright_measurement = 0;
+uint8_t light_measurement = 0;
 
-
+// --------------------------------------------------------------------
+// Setup function
+// --------------------------------------------------------------------
 void setup() {
-  pinMode(LDR_Apin, INPUT); // Pin por el que leeremos el nivel de luminosidad
-  pinMode(LDR_Dpin, INPUT); // Pin por el que leeremos si la luz da al sensor directamente o no
-
   Serial.begin(115200);  
   while (!Serial); 
 
@@ -104,34 +100,49 @@ void setup() {
   Serial.println("LoRa init succeeded.\n");
 }
 
-
+// --------------------------------------------------------------------
+// Loop function
+// --------------------------------------------------------------------
 void loop() {
 
-  static uint32_t lastSendTime_ms = 0;
-  static uint32_t txInterval_ms = TX_LAPSE_MS;
-  static uint32_t tx_begin_ms = 0;
+    static uint32_t lastSendTime_ms = 0;
+    static uint16_t msgCount = 0;
+    static uint32_t txInterval_ms = TX_LAPSE_MS;
+    static uint32_t tx_begin_ms = 0;
 
-  uint8_t payload[2];
-  uint8_t payloadLength = 2;
+    if(Serial.available() > 0) {  // Si se encuentra algo que leer 
+        String input = Serial.readStringUntil('\n');
 
-  d_read = -1;
-  a_read = -1;
-  if(!transmitting) {
-    brightnesMesure();
-  }
-  memcpy(payload, &a_read, payloadLength);  // Guardamos el valor de luminosidad en un array para mandarlo por LoRa posteriormente al concentrador
-  if (d_read != -1 && a_read != -1) {
-    //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload, payloadLength, d_read);
-    if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
-        transmitting = true;
-        txDoneFlag = false;
-        tx_begin_ms = millis();
-    
-        sendMessage(payload, payloadLength, msgCount, d_read);
-        Serial.print("Sending new brightness measurements (");
-        Serial.print(msgCount++);
-        Serial.print("): ");
-        printBinaryPayload(payload, payloadLength);
+        char Buf[50];
+        input.toCharArray(Buf, 50);
+
+        MatchState ms;
+        ms.Target(Buf);
+
+        char bright_result = ms.Match("^bright [0-9]+"); // Orden para modificar el tiempo entre una medida de luz y la siguiente
+
+        if (bright_result == REGEXP_MATCHED) {
+          int spacePositon = input.indexOf(" ");
+          bright_wait = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+          SerialUSB.println("\n=============================================================");
+          SerialUSB.print("The delay between brightness measurements has been changed to: ");
+          SerialUSB.print((int)(bright_wait * 1000));
+          SerialUSB.println("ms");
+          SerialUSB.println("=============================================================");
+          uint8_t payload = bright_wait;
+          //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
+
+          if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+            transmitting = true;
+            //txDoneFlag = false;
+            txDoneFlag = true;
+            tx_begin_ms = millis();
+        
+            sendMessage(payload, msgCount);
+            Serial.print("Sending new brightness measurements delay (");
+            Serial.print(msgCount++);
+            Serial.print("): ");
+            Serial.println(payload);
     }                  
 
     if (transmitting && txDoneFlag) {
@@ -160,39 +171,38 @@ void loop() {
         // en segundo plano mientras se transmite
         LoRa.receive();   
     }
-  }
+        }
+    }
 }
 
 // --------------------------------------------------------------------
 // Sending message function
 // --------------------------------------------------------------------
-void sendMessage(uint8_t* payload, uint8_t payloadLength, uint16_t msgCount, uint8_t d_read) {
+void sendMessage(uint8_t payload, uint16_t msgCount) {
   while(!LoRa.beginPacket()) {            // Comenzamos el empaquetado del mensaje
     delay(10);                            // 
   }
   LoRa.write(destination);                // Añadimos el ID del destinatario
   LoRa.write(localAddress);               // Añadimos el ID del remitente
   LoRa.write((uint8_t)(msgCount >> 7));   // Añadimos el Id del mensaje (MSB primero)
-  LoRa.write((uint8_t)(msgCount & 0xFF));
-  LoRa.write(d_read);                     // Añadimos la información de si hay luz directa (1) o no (0)
-  LoRa.write(payloadLength);              // Añadimos la longitud en bytes del mensaje
-  LoRa.write(payload, (size_t)payloadLength); // Añadimos el mensaje/payload 
+  LoRa.write((uint8_t)(msgCount & 0xFF)); 
+  LoRa.write(payload); // Añadimos el mensaje/payload 
   LoRa.endPacket(true);                   // Finalizamos el paquete, pero no esperamos a
                                           // finalice su transmisión
 }
 
-void sendPayload(uint32_t lastSendTime_ms, uint16_t msgCount, uint32_t txInterval_ms, uint32_t tx_begin_ms, uint8_t payload[2], uint8_t payloadLength, uint8_t d_read) {
+void sendPayload(uint32_t lastSendTime_ms, uint16_t msgCount, uint32_t txInterval_ms, uint32_t tx_begin_ms, uint8_t payload) {
     
     if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
         transmitting = true;
         txDoneFlag = false;
         tx_begin_ms = millis();
     
-        sendMessage(payload, payloadLength, msgCount, d_read);
-        Serial.print("Sending new brightness measurements (");
+        sendMessage(payload, msgCount);
+        Serial.print("Sending new brightness measurements delay (");
         Serial.print(msgCount++);
         Serial.print("): ");
-        printBinaryPayload(payload, payloadLength);
+        Serial.print(payload);
     }                  
 
     if (transmitting && txDoneFlag) {
@@ -222,7 +232,6 @@ void sendPayload(uint32_t lastSendTime_ms, uint16_t msgCount, uint32_t txInterva
         LoRa.receive();   
     }
 }
-
 
 // --------------------------------------------------------------------
 // Receiving message function
@@ -239,10 +248,19 @@ void onReceive(int packetSize) {
                                         // msg ID (High Byte first)
   uint16_t incomingMsgId = ((uint16_t)LoRa.read() << 7) | 
                             (uint16_t)LoRa.read();
+  light_measurement = LoRa.read(); // En caso de que la luz sea directa (1) se guarda
+  uint8_t incomingLength = LoRa.read(); // Longitud en bytes del mensaje
   
-  uint8_t incomingConfig = LoRa.read(); // Longitud en bytes del mensaje
+  uint8_t receivedBytes = 0;            // Leemos el mensaje byte a byte
+  while (LoRa.available() && (receivedBytes < uint8_t(sizeof(buffer)-1))) {            
+    buffer[receivedBytes++] = (char)LoRa.read();
+  }
   
-  uint8_t receivedBytes = 1;            // Leemos el mensaje byte a byte
+  if (incomingLength != receivedBytes) {// Verificamos la longitud del mensaje
+    Serial.print("Receiving error: declared message length " + String(incomingLength));
+    Serial.println(" does not match length " + String(receivedBytes));
+    return;                             
+  }
 
   // Verificamos si se trata de un mensaje en broadcast o es un mensaje
   // dirigido específicamente a este dispositivo.
@@ -258,35 +276,30 @@ void onReceive(int packetSize) {
   Serial.println("Received from: 0x" + String(sender, HEX));
   Serial.println("Sent to: 0x" + String(recipient, HEX));
   Serial.println("Message ID: " + String(incomingMsgId));
+  Serial.println("Payload length: " + String(incomingLength));
   Serial.print("Payload: ");
-  Serial.print(incomingConfig);
-  Serial.print(", ");
-  Serial.print(receivedBytes);
+  printBinaryPayload(buffer, receivedBytes);
   Serial.print("\nRSSI: " + String(LoRa.packetRssi()));
   Serial.print(" dBm\nSNR: " + String(LoRa.packetSnr()));
   Serial.println(" dB");
 
-  Serial.print("\n=============================================\n");
-  wait = (int)incomingConfig;
-  wait = wait * 1000;
-  Serial.print("New delay configuration: ");
-  Serial.print(wait);
-  Serial.println(" ms.");
-  Serial.print("=============================================\n");
+  // Actualizamos remoteNodeConf y lo mostramos
+  if (receivedBytes == 2) {
+    bright_measurement = *((uint16_t*)buffer);
+    Serial.print("Remote brightness measurement: ");
+    Serial.println(bright_measurement);
+    Serial.print("Remote direct light measurement: ");
+    Serial.println(light_measurement);
+    
+  } else {
+    Serial.print("Unexpected payload size: ");
+    Serial.print(receivedBytes);
+    Serial.println(" bytes\n");
+  }
 }
 
 void TxFinished() {
   txDoneFlag = true;
-}
-
-void brightnesMesure() {
-  delay(wait);
-  d_read = digitalRead(LDR_Dpin);  // Si la luz da directamente al sensor da 1, en caso contrario 0
-  a_read = analogRead(LDR_Apin);  // Nivel de luminosidad de 0 a 1023
-  SerialUSB.print("\nDirect light: ");
-  SerialUSB.println(d_read);
-  SerialUSB.print("Brightness level: ");
-  SerialUSB.println(a_read);
 }
 
 void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
