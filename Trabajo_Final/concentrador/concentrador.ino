@@ -30,13 +30,12 @@ double bandwidth_kHz[10] = {7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3,
 LoRaConfig_t thisNodeConf   = { 9, 7, 5, 2};
 int remoteRSSI = 0;
 float remoteSNR = 0;
+uint8_t measurement = 0;
 
 uint16_t bright_wait = 10000;
 uint16_t bright_measurement = 0;
-uint8_t light_measurement = 0;
 
 uint16_t ultrasound_wait = 10000;
-uint16_t ultrasound_measurement = 0;
 
 // --------------------------------------------------------------------
 // Setup function
@@ -305,7 +304,7 @@ void onReceive(int packetSize) {
                                         // msg ID (High Byte first)
   uint16_t incomingMsgId = ((uint16_t)LoRa.read() << 7) | 
                             (uint16_t)LoRa.read();
-  light_measurement = LoRa.read(); // En caso de que la luz sea directa (1) se guarda
+  measurement = LoRa.read(); // En caso de que la luz sea directa (1) se guarda
   uint8_t incomingLength = LoRa.read(); // Longitud en bytes del mensaje
   
   uint8_t receivedBytes = 0;            // Leemos el mensaje byte a byte
@@ -340,18 +339,24 @@ void onReceive(int packetSize) {
   Serial.print(" dBm\nSNR: " + String(LoRa.packetSnr()));
   Serial.println(" dB");
 
-  // Actualizamos remoteNodeConf y lo mostramos
-  if (receivedBytes == 2) {
+  // Mostramos las medidas de cada sensor según sus direcciones
+  if (String(sender, HEX).equals("B1")) {
     bright_measurement = *((uint16_t*)buffer);
     Serial.print("Remote brightness measurement: ");
     Serial.println(bright_measurement);
     Serial.print("Remote direct light measurement: ");
-    Serial.println(light_measurement);
-    
+    Serial.print(measurement);
+    if (measurement == 1) {
+      Serial.println(" (direct)");
+    } else {
+      Serial.println(" (indirect)");
+    }
+  } else if (String(sender, HEX).equals("B2")) {
+    Serial.print("Remote ultrasound measurement: ");
+    Serial.print(measurement);
+    Serial.println(" cm");
   } else {
-    Serial.print("Unexpected payload size: ");
-    Serial.print(receivedBytes);
-    Serial.println(" bytes\n");
+    Serial.println("Unexpected sender direction: 0x" + String(sender, HEX));
   }
 }
 
