@@ -36,6 +36,7 @@ uint16_t bright_wait = 10000;
 uint16_t bright_measurement = 0;
 
 uint16_t ultrasound_wait = 10000;
+uint16_t ultrasound_unit = 1;
 
 // --------------------------------------------------------------------
 // Setup function
@@ -122,7 +123,8 @@ void loop() {
       ms.Target(Buf);
 
       char bright_result = ms.Match("^bright [0-9]+"); // Orden para modificar el tiempo entre una medida de luz y la siguiente
-      char ultrasound_result = ms.Match("^ultrasound [0-9]+"); // Orden para modificar el tiempo entre una medida de ultrasonido y la siguiente
+      char ultrasound_delay_result = ms.Match("^ultrasound delay [0-9]+"); // Orden para modificar el tiempo entre una medida de ultrasonido y la siguiente
+      char ultrasound_unit_result = ms.Match("^ultrasound unit [1-3]"); // Orden para modificar el tiempo entre una medida de ultrasonido y la siguiente
 
       if (bright_result == REGEXP_MATCHED) {
         destination = 0xB1; // Cambiamos la direccion de destino al sensor de luminosidad
@@ -150,33 +152,33 @@ void loop() {
         }                  
 
         if (transmitting && txDoneFlag) {
-            uint32_t TxTime_ms = millis() - tx_begin_ms;
-            Serial.print("----> TX completed in ");
-            Serial.print(TxTime_ms);
-            Serial.println(" msecs");
-            
-            // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
-            uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
-            lastSendTime_ms = tx_begin_ms; 
-            float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
-            
-            Serial.print("Duty cycle: ");
-            Serial.print(duty_cycle, 1);
-            Serial.println(" %\n");
+          uint32_t TxTime_ms = millis() - tx_begin_ms;
+          Serial.print("----> TX completed in ");
+          Serial.print(TxTime_ms);
+          Serial.println(" msecs");
+          
+          // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+          uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+          lastSendTime_ms = tx_begin_ms; 
+          float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+          
+          Serial.print("Duty cycle: ");
+          Serial.print(duty_cycle, 1);
+          Serial.println(" %\n");
 
-            // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
-            if (duty_cycle > 1.0f) {
-              txInterval_ms = TxTime_ms * 100;
-            }
-            
-            transmitting = false;
-            
-            // Reactivamos la recepción de mensajes, que se desactiva
-            // en segundo plano mientras se transmite
-            LoRa.receive();   
+          // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+          if (duty_cycle > 1.0f) {
+            txInterval_ms = TxTime_ms * 100;
+          }
+          
+          transmitting = false;
+          
+          // Reactivamos la recepción de mensajes, que se desactiva
+          // en segundo plano mientras se transmite
+          LoRa.receive();   
         }
       }
-      if (ultrasound_result == REGEXP_MATCHED) {
+      if (ultrasound_delay_result == REGEXP_MATCHED) {
         destination = 0xB2;  // Cambiamos la direccion de destino al sensor de ultrasonido
         int spacePositon = input.indexOf(" ");
         ultrasound_wait = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
@@ -202,30 +204,82 @@ void loop() {
         }                  
 
         if (transmitting && txDoneFlag) {
-            uint32_t TxTime_ms = millis() - tx_begin_ms;
-            Serial.print("----> TX completed in ");
-            Serial.print(TxTime_ms);
-            Serial.println(" msecs");
-            
-            // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
-            uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
-            lastSendTime_ms = tx_begin_ms; 
-            float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
-            
-            Serial.print("Duty cycle: ");
-            Serial.print(duty_cycle, 1);
-            Serial.println(" %\n");
+          uint32_t TxTime_ms = millis() - tx_begin_ms;
+          Serial.print("----> TX completed in ");
+          Serial.print(TxTime_ms);
+          Serial.println(" msecs");
+          
+          // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+          uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+          lastSendTime_ms = tx_begin_ms; 
+          float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+          
+          Serial.print("Duty cycle: ");
+          Serial.print(duty_cycle, 1);
+          Serial.println(" %\n");
 
-            // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
-            if (duty_cycle > 1.0f) {
-              txInterval_ms = TxTime_ms * 100;
-            }
-            
-            transmitting = false;
-            
-            // Reactivamos la recepción de mensajes, que se desactiva
-            // en segundo plano mientras se transmite
-            LoRa.receive();   
+          // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+          if (duty_cycle > 1.0f) {
+            txInterval_ms = TxTime_ms * 100;
+          }
+          
+          transmitting = false;
+          
+          // Reactivamos la recepción de mensajes, que se desactiva
+          // en segundo plano mientras se transmite
+          LoRa.receive();   
+        }
+      }
+      if (ultrasound_unit_result == REGEXP_MATCHED) {
+        destination = 0xB2;  // Cambiamos la direccion de destino al sensor de ultrasonido
+        int spacePositon = input.indexOf(" ");
+        ultrasound_unit = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+        SerialUSB.println("\n=============================================================");
+        SerialUSB.print("The delay between brightness measurements has been changed to: ");
+        SerialUSB.print((int)(ultrasound_unit));
+        SerialUSB.println("ms");
+        SerialUSB.println("=============================================================");
+        uint8_t payload = ultrasound_unit;
+        //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
+
+        if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+          transmitting = true;
+          //txDoneFlag = false;
+          txDoneFlag = true;
+          tx_begin_ms = millis();
+      
+          sendUnitMessage(payload, msgCount, 1);
+          Serial.print("Sending new ultrasound measurements delay (");
+          Serial.print(msgCount++);
+          Serial.print("): ");
+          Serial.println(payload);
+        }                  
+
+        if (transmitting && txDoneFlag) {
+          uint32_t TxTime_ms = millis() - tx_begin_ms;
+          Serial.print("----> TX completed in ");
+          Serial.print(TxTime_ms);
+          Serial.println(" msecs");
+          
+          // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+          uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+          lastSendTime_ms = tx_begin_ms; 
+          float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+          
+          Serial.print("Duty cycle: ");
+          Serial.print(duty_cycle, 1);
+          Serial.println(" %\n");
+
+          // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+          if (duty_cycle > 1.0f) {
+            txInterval_ms = TxTime_ms * 100;
+          }
+          
+          transmitting = false;
+          
+          // Reactivamos la recepción de mensajes, que se desactiva
+          // en segundo plano mientras se transmite
+          LoRa.receive();   
         }
       }
     }
@@ -247,45 +301,59 @@ void sendMessage(uint8_t payload, uint16_t msgCount) {
                                           // finalice su transmisión
 }
 
+void sendUnitMessage(uint8_t payload, uint16_t msgCount, uint8_t unit_flag) {
+  while(!LoRa.beginPacket()) {            // Comenzamos el empaquetado del mensaje
+    delay(10);                            // 
+  }
+  LoRa.write(destination);                // Añadimos el ID del destinatario
+  LoRa.write(localAddress);               // Añadimos el ID del remitente
+  LoRa.write((uint8_t)(msgCount >> 7));   // Añadimos el Id del mensaje (MSB primero)
+  LoRa.write((uint8_t)(msgCount & 0xFF));
+  LoRa.write(payload); // Añadimos el mensaje/payload
+  LoRa.write(unit_flag); // Añadimos el mensaje/payload 
+  LoRa.endPacket(true);                   // Finalizamos el paquete, pero no esperamos a
+                                          // finalice su transmisión
+}
+
 void sendPayload(uint32_t lastSendTime_ms, uint16_t msgCount, uint32_t txInterval_ms, uint32_t tx_begin_ms, uint8_t payload) {
     
     if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
-        transmitting = true;
-        txDoneFlag = false;
-        tx_begin_ms = millis();
-    
-        sendMessage(payload, msgCount);
-        Serial.print("Sending new brightness measurements delay (");
-        Serial.print(msgCount++);
-        Serial.print("): ");
-        Serial.print(payload);
+      transmitting = true;
+      txDoneFlag = false;
+      tx_begin_ms = millis();
+  
+      sendMessage(payload, msgCount);
+      Serial.print("Sending new brightness measurements delay (");
+      Serial.print(msgCount++);
+      Serial.print("): ");
+      Serial.print(payload);
     }                  
 
     if (transmitting && txDoneFlag) {
-        uint32_t TxTime_ms = millis() - tx_begin_ms;
-        Serial.print("----> TX completed in ");
-        Serial.print(TxTime_ms);
-        Serial.println(" msecs");
-        
-        // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
-        uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
-        lastSendTime_ms = tx_begin_ms; 
-        float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
-        
-        Serial.print("Duty cycle: ");
-        Serial.print(duty_cycle, 1);
-        Serial.println(" %\n");
+      uint32_t TxTime_ms = millis() - tx_begin_ms;
+      Serial.print("----> TX completed in ");
+      Serial.print(TxTime_ms);
+      Serial.println(" msecs");
+      
+      // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+      uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+      lastSendTime_ms = tx_begin_ms; 
+      float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+      
+      Serial.print("Duty cycle: ");
+      Serial.print(duty_cycle, 1);
+      Serial.println(" %\n");
 
-        // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
-        if (duty_cycle > 1.0f) {
-        txInterval_ms = TxTime_ms * 100;
-        }
-        
-        transmitting = false;
-        
-        // Reactivamos la recepción de mensajes, que se desactiva
-        // en segundo plano mientras se transmite
-        LoRa.receive();   
+      // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+      if (duty_cycle > 1.0f) {
+      txInterval_ms = TxTime_ms * 100;
+      }
+      
+      transmitting = false;
+      
+      // Reactivamos la recepción de mensajes, que se desactiva
+      // en segundo plano mientras se transmite
+      LoRa.receive();   
     }
 }
 
