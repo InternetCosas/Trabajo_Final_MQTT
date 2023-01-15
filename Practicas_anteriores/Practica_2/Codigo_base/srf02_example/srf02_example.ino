@@ -74,6 +74,10 @@ static uint16_t msgCount = 0;
 uint8_t min_measurement = 0;
 uint8_t real_measurement = 0;
 
+bool cm_flag = true;
+bool ms_flag = false;
+bool inc_flag = false;
+
 inline void write_command(byte address,byte command)
 { 
   Wire.beginTransmission(address);
@@ -250,7 +254,8 @@ void onReceive(int packetSize) {
   uint16_t incomingMsgId = ((uint16_t)LoRa.read() << 7) | 
                             (uint16_t)LoRa.read();
   
-  uint8_t incomingConfig = LoRa.read(); // Longitud en bytes del mensaje
+  uint8_t incomingConfig = LoRa.read(); // Nueva configuracion de delay o unidades
+  uint8_t unit_flag = LoRa.read(); // flag para cambio de unidades
   
   uint8_t receivedBytes = 1;            // Leemos el mensaje byte a byte
 
@@ -276,13 +281,29 @@ void onReceive(int packetSize) {
   Serial.print(" dBm\nSNR: " + String(LoRa.packetSnr()));
   Serial.println(" dB");
 
-  Serial.print("\n=============================================\n");
-  SRF02_RANGING_DELAY = (int)incomingConfig;
-  SRF02_RANGING_DELAY = SRF02_RANGING_DELAY * 1000;
-  Serial.print("New delay configuration: ");
-  Serial.print(SRF02_RANGING_DELAY);
-  Serial.println(" ms.");
-  Serial.print("=============================================\n");
+  if ((int)unit_flag == 27) {
+    if ((int)incomingConfig == 3) { // Cambio de unidad de medida a ms
+      ms_flag = true;
+      cm_flag = false;
+      inc_flag = false;
+    } else if ((int)incomingConfig == 2) { // Cambio de unidad de medida a inc
+      inc_flag = true;
+      ms_flag = false;
+      cm_flag = false;
+    } else { // Cambio de unidad de medida a cm
+      cm_flag = true;
+      inc_flag = false;
+      ms_flag = false;
+    }
+  } else {
+    Serial.print("\n=============================================\n");
+    SRF02_RANGING_DELAY = (int)incomingConfig;
+    SRF02_RANGING_DELAY = SRF02_RANGING_DELAY * 1000;
+    Serial.print("New delay configuration: ");
+    Serial.print(SRF02_RANGING_DELAY);
+    Serial.println(" ms.");
+    Serial.print("=============================================\n");
+  }
 }
 
 void TxFinished() {
@@ -291,7 +312,13 @@ void TxFinished() {
 
 void distanceMesure() {
   SerialUSB.print("ranging ...");
-  write_command(SRF02_I2C_ADDRESS,REAL_RANGING_MODE_CMS);
+  if (ms_flag && !cm_flag && !inc_flag) {
+    write_command(SRF02_I2C_ADDRESS,REAL_RANGING_MODE_USECS);
+  } else if (!ms_flag && !cm_flag && inc_flag) {
+    write_command(SRF02_I2C_ADDRESS,REAL_RANGING_MODE_INCHES);
+  } else {
+    write_command(SRF02_I2C_ADDRESS,REAL_RANGING_MODE_CMS);
+  }
   delay(SRF02_RANGING_DELAY);
   
   byte high_byte_range=read_register(SRF02_I2C_ADDRESS,RANGE_HIGH_BYTE);
