@@ -11,7 +11,7 @@
 
 // NOTA: Ajustar estas variables 
 const uint8_t localAddress = 0xB1;     // Dirección de este dispositivo
-uint8_t destination = 0xFF;            // Dirección de destino, 0xFF es la dirección de broadcast
+uint8_t destination = 0xB0;            // Dirección de destino, 0xFF es la dirección de broadcast
 
 volatile bool txDoneFlag = true;       // Flag para indicar cuando ha finalizado una transmisión
 volatile bool transmitting = false;
