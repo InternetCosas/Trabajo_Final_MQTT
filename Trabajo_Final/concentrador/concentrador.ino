@@ -35,6 +35,9 @@ uint16_t bright_wait = 10000;
 uint16_t bright_measurement = 0;
 uint8_t light_measurement = 0;
 
+uint16_t ultrasound_wait = 10000;
+uint16_t ultrasound_measurement = 0;
+
 // --------------------------------------------------------------------
 // Setup function
 // --------------------------------------------------------------------
@@ -111,67 +114,121 @@ void loop() {
     static uint32_t tx_begin_ms = 0;
 
     if(Serial.available() > 0) {  // Si se encuentra algo que leer 
-        String input = Serial.readStringUntil('\n');
+      String input = Serial.readStringUntil('\n');
 
-        char Buf[50];
-        input.toCharArray(Buf, 50);
+      char Buf[50];
+      input.toCharArray(Buf, 50);
 
-        MatchState ms;
-        ms.Target(Buf);
+      MatchState ms;
+      ms.Target(Buf);
 
-        char bright_result = ms.Match("^bright [0-9]+"); // Orden para modificar el tiempo entre una medida de luz y la siguiente
+      char bright_result = ms.Match("^bright [0-9]+"); // Orden para modificar el tiempo entre una medida de luz y la siguiente
+      char ultrasound_result = ms.Match("^ultrasound [0-9]+"); // Orden para modificar el tiempo entre una medida de ultrasonido y la siguiente
 
-        if (bright_result == REGEXP_MATCHED) {
-          int spacePositon = input.indexOf(" ");
-          bright_wait = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
-          SerialUSB.println("\n=============================================================");
-          SerialUSB.print("The delay between brightness measurements has been changed to: ");
-          SerialUSB.print((int)(bright_wait * 1000));
-          SerialUSB.println("ms");
-          SerialUSB.println("=============================================================");
-          uint8_t payload = bright_wait;
-          //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
+      if (bright_result == REGEXP_MATCHED) {
+        destination = 0xB1; // Cambiamos la direccion de destino al sensor de luminosidad
+        int spacePositon = input.indexOf(" ");
+        bright_wait = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+        SerialUSB.println("\n=============================================================");
+        SerialUSB.print("The delay between brightness measurements has been changed to: ");
+        SerialUSB.print((int)(bright_wait * 1000));
+        SerialUSB.println("ms");
+        SerialUSB.println("=============================================================");
+        uint8_t payload = bright_wait;
+        //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
 
-          if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
-            transmitting = true;
-            //txDoneFlag = false;
-            txDoneFlag = true;
-            tx_begin_ms = millis();
-        
-            sendMessage(payload, msgCount);
-            Serial.print("Sending new brightness measurements delay (");
-            Serial.print(msgCount++);
-            Serial.print("): ");
-            Serial.println(payload);
-    }                  
+        if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+          transmitting = true;
+          //txDoneFlag = false;
+          txDoneFlag = true;
+          tx_begin_ms = millis();
+      
+          sendMessage(payload, msgCount);
+          Serial.print("Sending new brightness measurements delay (");
+          Serial.print(msgCount++);
+          Serial.print("): ");
+          Serial.println(payload);
+        }                  
 
-    if (transmitting && txDoneFlag) {
-        uint32_t TxTime_ms = millis() - tx_begin_ms;
-        Serial.print("----> TX completed in ");
-        Serial.print(TxTime_ms);
-        Serial.println(" msecs");
-        
-        // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
-        uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
-        lastSendTime_ms = tx_begin_ms; 
-        float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
-        
-        Serial.print("Duty cycle: ");
-        Serial.print(duty_cycle, 1);
-        Serial.println(" %\n");
+        if (transmitting && txDoneFlag) {
+            uint32_t TxTime_ms = millis() - tx_begin_ms;
+            Serial.print("----> TX completed in ");
+            Serial.print(TxTime_ms);
+            Serial.println(" msecs");
+            
+            // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+            uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+            lastSendTime_ms = tx_begin_ms; 
+            float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+            
+            Serial.print("Duty cycle: ");
+            Serial.print(duty_cycle, 1);
+            Serial.println(" %\n");
 
-        // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
-        if (duty_cycle > 1.0f) {
-        txInterval_ms = TxTime_ms * 100;
+            // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+            if (duty_cycle > 1.0f) {
+              txInterval_ms = TxTime_ms * 100;
+            }
+            
+            transmitting = false;
+            
+            // Reactivamos la recepción de mensajes, que se desactiva
+            // en segundo plano mientras se transmite
+            LoRa.receive();   
         }
-        
-        transmitting = false;
-        
-        // Reactivamos la recepción de mensajes, que se desactiva
-        // en segundo plano mientras se transmite
-        LoRa.receive();   
-    }
+      }
+      if (ultrasound_result == REGEXP_MATCHED) {
+        destination = 0xB2;  // Cambiamos la direccion de destino al sensor de ultrasonido
+        int spacePositon = input.indexOf(" ");
+        ultrasound_wait = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+        SerialUSB.println("\n=============================================================");
+        SerialUSB.print("The delay between brightness measurements has been changed to: ");
+        SerialUSB.print((int)(ultrasound_wait * 1000));
+        SerialUSB.println("ms");
+        SerialUSB.println("=============================================================");
+        uint8_t payload = ultrasound_wait;
+        //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
+
+        if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+          transmitting = true;
+          //txDoneFlag = false;
+          txDoneFlag = true;
+          tx_begin_ms = millis();
+      
+          sendMessage(payload, msgCount);
+          Serial.print("Sending new ultrasound measurements delay (");
+          Serial.print(msgCount++);
+          Serial.print("): ");
+          Serial.println(payload);
+        }                  
+
+        if (transmitting && txDoneFlag) {
+            uint32_t TxTime_ms = millis() - tx_begin_ms;
+            Serial.print("----> TX completed in ");
+            Serial.print(TxTime_ms);
+            Serial.println(" msecs");
+            
+            // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+            uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+            lastSendTime_ms = tx_begin_ms; 
+            float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+            
+            Serial.print("Duty cycle: ");
+            Serial.print(duty_cycle, 1);
+            Serial.println(" %\n");
+
+            // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+            if (duty_cycle > 1.0f) {
+              txInterval_ms = TxTime_ms * 100;
+            }
+            
+            transmitting = false;
+            
+            // Reactivamos la recepción de mensajes, que se desactiva
+            // en segundo plano mientras se transmite
+            LoRa.receive();   
         }
+      }
     }
 }
 
