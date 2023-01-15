@@ -248,7 +248,7 @@ void loop() {
           txDoneFlag = true;
           tx_begin_ms = millis();
       
-          sendUnitMessage(payload, msgCount, 1);
+          sendUnitMessage(payload, msgCount, 27);
           Serial.print("Sending new ultrasound measurements delay (");
           Serial.print(msgCount++);
           Serial.print("): ");
