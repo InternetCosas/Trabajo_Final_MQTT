@@ -72,6 +72,7 @@ float remoteSNR = 0;
 static uint16_t msgCount = 0;
 
 uint8_t min_measurement = 0;
+uint8_t measurement_unit = 1;
 uint16_t real_measurement = 0;
 
 bool cm_flag = true;
@@ -239,12 +240,11 @@ void sendMessage(uint8_t* payload, uint8_t payloadLength, uint16_t msgCount) {
   while(!LoRa.beginPacket()) {            // Comenzamos el empaquetado del mensaje
     delay(10);                            // 
   }
-  uint8_t aux = 34;
   LoRa.write(destination);                // Añadimos el ID del destinatario
   LoRa.write(localAddress);               // Añadimos el ID del remitente
   LoRa.write((uint8_t)(msgCount >> 7));   // Añadimos el Id del mensaje (MSB primero)
   LoRa.write((uint8_t)(msgCount & 0xFF));
-  LoRa.write(aux); 
+  LoRa.write(measurement_unit); 
   LoRa.write(payloadLength);              // Añadimos la longitud en bytes del mensaje
   LoRa.write(payload, (size_t)payloadLength); // Añadimos el mensaje/payload 
   LoRa.endPacket(true);
@@ -297,16 +297,19 @@ void onReceive(int packetSize) {
       ms_flag = true;
       cm_flag = false;
       inc_flag = false;
+      measurement_unit = 3;
       Serial.println("ms");
     } else if ((int)incomingConfig == 2) { // Cambio de unidad de medida a inc
       inc_flag = true;
       ms_flag = false;
       cm_flag = false;
+      measurement_unit = 2;
       Serial.println("inc");
     } else { // Cambio de unidad de medida a cm
       cm_flag = true;
       inc_flag = false;
       ms_flag = false;
+      measurement_unit = 1;
       Serial.println("cm");
     }
     Serial.println("=============================================\n");
