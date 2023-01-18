@@ -34,10 +34,14 @@ uint8_t measurement = 0;
 
 uint16_t bright_wait = 10000;
 uint16_t bright_measurement = 0;
-uint16_t distance_measurement = 0;
 
+uint16_t distance_measurement = 0;
 uint16_t ultrasound_wait = 10000;
 uint16_t ultrasound_unit = 1;
+
+uint16_t temperature_measurement = 0;
+uint16_t thermistor_wait = 10000;
+uint16_t thermistor_unit = 1;
 
 // --------------------------------------------------------------------
 // Setup function
@@ -126,8 +130,10 @@ void loop() {
       char bright_result = ms.Match("^bright [0-9]+"); // Orden para modificar el tiempo entre una medida de luz y la siguiente
       char ultrasound_delay_result = ms.Match("^ultrasound delay [0-9]+"); // Orden para modificar el tiempo entre una medida de ultrasonido y la siguiente
       char ultrasound_unit_result = ms.Match("^ultrasound unit [1-3]"); // Orden para modificar el tiempo entre una medida de ultrasonido y la siguiente
+      char thermistor_delay_result = ms.Match("^thermistor delay [0-9]+"); // Orden para modificar el tiempo entre una medida de termistor y la siguiente
+      char thermistor_unit_result = ms.Match("^thermistor unit [1-3]"); // Orden para modificar el tiempo entre una medida de termistor y la siguiente
 
-      if (input.equalsIgnoreCase("help") || bright_result != REGEXP_MATCHED || ultrasound_delay_result != REGEXP_MATCHED || ultrasound_unit_result != REGEXP_MATCHED) {
+      if (input.equalsIgnoreCase("help") || bright_result != REGEXP_MATCHED || ultrasound_delay_result != REGEXP_MATCHED || ultrasound_unit_result != REGEXP_MATCHED || thermistor_delay_result != REGEXP_MATCHED || thermistor_unit_result != REGEXP_MATCHED) {
         SerialUSB.println("Se printea la ayuda");
       }
       if (bright_result == REGEXP_MATCHED) {
@@ -140,7 +146,6 @@ void loop() {
         SerialUSB.println("ms");
         SerialUSB.println("=============================================================");
         uint8_t payload = bright_wait;
-        //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
 
         if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
           transmitting = true;
@@ -189,12 +194,11 @@ void loop() {
         int secondSpacePositon = aux.indexOf(" ");
         ultrasound_wait = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
         SerialUSB.println("\n=============================================================");
-        SerialUSB.print("The delay between brightness measurements has been changed to: ");
+        SerialUSB.print("The delay between distance measurements has been changed to: ");
         SerialUSB.print((int)(ultrasound_wait * 1000));
         SerialUSB.println("ms");
         SerialUSB.println("=============================================================");
         uint8_t payload = ultrasound_wait;
-        //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
 
         if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
           transmitting = true;
@@ -241,14 +245,13 @@ void loop() {
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
         int secondSpacePositon = aux.indexOf(" ");
-        ultrasound_unit = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+        ultrasound_unit = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos la unidad de medida para la distancia
         SerialUSB.println("\n=============================================================");
-        SerialUSB.print("The delay between brightness measurements has been changed to: ");
+        SerialUSB.print("The unit for distance measurements has been changed to: ");
         SerialUSB.print((int)(ultrasound_unit));
         SerialUSB.println("ms");
         SerialUSB.println("=============================================================");
         uint8_t payload = ultrasound_unit;
-        //sendPayload(lastSendTime_ms, msgCount, txInterval_ms, tx_begin_ms, payload);
 
         if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
           transmitting = true;
@@ -257,7 +260,113 @@ void loop() {
           tx_begin_ms = millis();
       
           sendUnitMessage(payload, msgCount, 27);
-          Serial.print("Sending new ultrasound measurements delay (");
+          Serial.print("Sending new ultrasound measurements unit (");
+          Serial.print(msgCount++);
+          Serial.print("): ");
+          Serial.println(payload);
+        }                  
+
+        if (transmitting && txDoneFlag) {
+          uint32_t TxTime_ms = millis() - tx_begin_ms;
+          Serial.print("----> TX completed in ");
+          Serial.print(TxTime_ms);
+          Serial.println(" msecs");
+          
+          // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+          uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+          lastSendTime_ms = tx_begin_ms; 
+          float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+          
+          Serial.print("Duty cycle: ");
+          Serial.print(duty_cycle, 1);
+          Serial.println(" %\n");
+
+          // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+          if (duty_cycle > 1.0f) {
+            txInterval_ms = TxTime_ms * 100;
+          }
+          
+          transmitting = false;
+          
+          // Reactivamos la recepción de mensajes, que se desactiva
+          // en segundo plano mientras se transmite
+          LoRa.receive();   
+        }
+      }
+      if (thermistor_delay_result == REGEXP_MATCHED) {
+        destination = 0xB3;  // Cambiamos la direccion de destino al sensor de temperatura
+        int spacePositon = input.indexOf(" ");
+        String aux = input.substring(spacePositon+1);
+        int secondSpacePositon = aux.indexOf(" ");
+        thermistor_wait = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+        SerialUSB.println("\n=============================================================");
+        SerialUSB.print("The delay between temperature measurements has been changed to: ");
+        SerialUSB.print((int)(thermistor_wait * 1000));
+        SerialUSB.println("ms");
+        SerialUSB.println("=============================================================");
+        uint8_t payload = thermistor_wait;
+
+        if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+          transmitting = true;
+          //txDoneFlag = false;
+          txDoneFlag = true;
+          tx_begin_ms = millis();
+      
+          sendMessage(payload, msgCount);
+          Serial.print("Sending new thermistor measurements delay (");
+          Serial.print(msgCount++);
+          Serial.print("): ");
+          Serial.println(payload);
+        }                  
+
+        if (transmitting && txDoneFlag) {
+          uint32_t TxTime_ms = millis() - tx_begin_ms;
+          Serial.print("----> TX completed in ");
+          Serial.print(TxTime_ms);
+          Serial.println(" msecs");
+          
+          // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+          uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+          lastSendTime_ms = tx_begin_ms; 
+          float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+          
+          Serial.print("Duty cycle: ");
+          Serial.print(duty_cycle, 1);
+          Serial.println(" %\n");
+
+          // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+          if (duty_cycle > 1.0f) {
+            txInterval_ms = TxTime_ms * 100;
+          }
+          
+          transmitting = false;
+          
+          // Reactivamos la recepción de mensajes, que se desactiva
+          // en segundo plano mientras se transmite
+          LoRa.receive();   
+        }
+      }
+      if (thermistor_unit_result == REGEXP_MATCHED) {
+        destination = 0xB3;  // Cambiamos la direccion de destino al sensor de temperatura
+        int spacePositon = input.indexOf(" ");
+        String aux = input.substring(spacePositon+1);
+        int secondSpacePositon = aux.indexOf(" ");
+        thermistor_unit = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos la unidad de medida para la temperatura
+        SerialUSB.println("\n=============================================================");
+        SerialUSB.print("The unit for temperature measurements has been changed to: ");
+        SerialUSB.print((int)(thermistor_unit));
+        SerialUSB.println("ms");
+        SerialUSB.println("=============================================================");
+        uint8_t payload = thermistor_unit;
+
+        if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+          transmitting = true;
+          //txDoneFlag = false;
+          txDoneFlag = true;
+          tx_begin_ms = millis();
+      
+          sendUnitMessage(payload, msgCount, 27);
+          Serial.print("Sending new thermistor measurements unit (");
           Serial.print(msgCount++);
           Serial.print("): ");
           Serial.println(payload);
@@ -323,48 +432,6 @@ void sendUnitMessage(uint8_t payload, uint16_t msgCount, uint8_t unit_flag) {
                                           // finalice su transmisión
 }
 
-void sendPayload(uint32_t lastSendTime_ms, uint16_t msgCount, uint32_t txInterval_ms, uint32_t tx_begin_ms, uint8_t payload) {
-    
-    if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
-      transmitting = true;
-      txDoneFlag = false;
-      tx_begin_ms = millis();
-  
-      sendMessage(payload, msgCount);
-      Serial.print("Sending new brightness measurements delay (");
-      Serial.print(msgCount++);
-      Serial.print("): ");
-      Serial.print(payload);
-    }                  
-
-    if (transmitting && txDoneFlag) {
-      uint32_t TxTime_ms = millis() - tx_begin_ms;
-      Serial.print("----> TX completed in ");
-      Serial.print(TxTime_ms);
-      Serial.println(" msecs");
-      
-      // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
-      uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
-      lastSendTime_ms = tx_begin_ms; 
-      float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
-      
-      Serial.print("Duty cycle: ");
-      Serial.print(duty_cycle, 1);
-      Serial.println(" %\n");
-
-      // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
-      if (duty_cycle > 1.0f) {
-      txInterval_ms = TxTime_ms * 100;
-      }
-      
-      transmitting = false;
-      
-      // Reactivamos la recepción de mensajes, que se desactiva
-      // en segundo plano mientras se transmite
-      LoRa.receive();   
-    }
-}
-
 // --------------------------------------------------------------------
 // Receiving message function
 // --------------------------------------------------------------------
@@ -416,7 +483,7 @@ void onReceive(int packetSize) {
   Serial.println(" dB");
 
   // Mostramos las medidas de cada sensor según sus direcciones
-  if (String(sender, HEX).equals("b1")) {
+  if (String(sender, HEX).equalsIgnoreCase("b1")) {  // Medidas de la fotorresistencia
     bright_measurement = *((uint16_t*)buffer);
     Serial.print("Remote brightness measurement: ");
     Serial.println(bright_measurement);
@@ -427,7 +494,7 @@ void onReceive(int packetSize) {
     } else {
       Serial.println(" (indirect)");
     }
-  } else if (String(sender, HEX).equals("b2")) {
+  } else if (String(sender, HEX).equalsIgnoreCase("b2")) { // Medidas del ultrasonido
     Serial.print("Remote ultrasound measurement: ");
     distance_measurement = *((uint16_t*)buffer);
     Serial.print(distance_measurement);
@@ -438,6 +505,18 @@ void onReceive(int packetSize) {
       Serial.println(" inc");
     } else {
       Serial.println(" cm");
+    }
+  } else if (String(sender, HEX).equalsIgnoreCase("b3")) { // Medidas del termistor
+    Serial.print("Remote thermistor measurement: ");
+    temperature_measurement = *((uint16_t*)buffer);
+    Serial.print(temperature_measurement);
+    thermistor_unit = measurement;
+    if (thermistor_unit == 3) {
+      Serial.println(" F"); // Se mide en Fahrenheit
+    } else if (thermistor_unit == 2) {
+      Serial.println(" K"); // Se mide en Kelvin
+    } else {
+      Serial.println(" C"); // Se mide en Celsius
     }
   } else {
     Serial.println("Unexpected sender direction: 0x" + String(sender, HEX));
