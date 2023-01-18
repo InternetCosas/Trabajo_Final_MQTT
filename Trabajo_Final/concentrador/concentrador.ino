@@ -410,7 +410,7 @@ void onReceive(int packetSize) {
   Serial.println(" dB");
 
   // Mostramos las medidas de cada sensor según sus direcciones
-  if (String(sender, HEX).equals("B1")) {
+  if (String(sender, HEX).equals("b1")) {
     bright_measurement = *((uint16_t*)buffer);
     Serial.print("Remote brightness measurement: ");
     Serial.println(bright_measurement);
@@ -421,7 +421,7 @@ void onReceive(int packetSize) {
     } else {
       Serial.println(" (indirect)");
     }
-  } else if (String(sender, HEX).equals("B2")) {
+  } else if (String(sender, HEX).equals("b2")) {
     Serial.print("Remote ultrasound measurement: ");
     Serial.print(measurement);
     if (ultrasound_unit == 3) {
