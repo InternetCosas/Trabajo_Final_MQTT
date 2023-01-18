@@ -422,7 +422,13 @@ void onReceive(int packetSize) {
   } else if (String(sender, HEX).equals("B2")) {
     Serial.print("Remote ultrasound measurement: ");
     Serial.print(measurement);
-    Serial.println(" cm");
+    if (ultrasound_unit == 3) {
+      Serial.println(" ms");
+    } else if (ultrasound_unit == 2) {
+      Serial.println(" inc");
+    } else {
+      Serial.println(" cm");
+    }
   } else {
     Serial.println("Unexpected sender direction: 0x" + String(sender, HEX));
   }
