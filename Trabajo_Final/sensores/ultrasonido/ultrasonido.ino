@@ -327,11 +327,23 @@ void distanceMesure() {
   byte low_min=read_register(SRF02_I2C_ADDRESS,AUTOTUNE_MINIMUM_LOW_BYTE);
   
   real_measurement = int((high_byte_range<<8) | low_byte_range);
-  SerialUSB.print(real_measurement); 
-  Serial.print(" cms. (min=");
+  SerialUSB.print(real_measurement);
+  if (ms_flag && !cm_flag && !inc_flag) {
+    Serial.print(" ms. (min=");
+  } else if (!ms_flag && !cm_flag && inc_flag) {
+    Serial.print(" inc. (min=");
+  } else {
+    Serial.print(" cms. (min=");
+  }
   min_measurement = int((high_min<<8) | low_min);
-  SerialUSB.print(min_measurement); 
-  Serial.println(" cms.)");
+  SerialUSB.print(min_measurement);
+  if (ms_flag && !cm_flag && !inc_flag) {
+    Serial.println(" ms.)");
+  } else if (!ms_flag && !cm_flag && inc_flag) {
+    Serial.println(" inc.)");
+  } else {
+    Serial.println(" cms.)");
+  }
 }
 
 void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
