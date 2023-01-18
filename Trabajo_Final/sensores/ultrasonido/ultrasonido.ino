@@ -72,7 +72,7 @@ float remoteSNR = 0;
 static uint16_t msgCount = 0;
 
 uint8_t min_measurement = 0;
-uint8_t real_measurement = 0;
+uint16_t real_measurement = 0;
 
 bool cm_flag = true;
 bool ms_flag = false;
@@ -179,23 +179,28 @@ void loop() {
   static uint32_t lastSendTime_ms = 0;
   static uint32_t txInterval_ms = TX_LAPSE_MS;
   static uint32_t tx_begin_ms = 0;
-  
+
+  uint8_t payload[2];
+  uint8_t payloadLength = 2;
+
+  real_measurement = -1;
   if(!transmitting) {
     distanceMesure();
   }
-
-  uint8_t payload = real_measurement;
-
+  
+  memcpy(payload, &real_measurement, payloadLength);
+  if (real_measurement != -1) {
     if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
         transmitting = true;
         txDoneFlag = false;
         tx_begin_ms = millis();
     
-        sendMessage(payload, msgCount);
+        sendMessage(payload, payloadLength, msgCount);
         Serial.print("Sending new distance measurements (");
         Serial.print(msgCount++);
         Serial.print("): ");
-        printDistanceMeasurement(payload);
+        printBinaryPayload(payload, payloadLength);
+        printUnitMeasurement();
     }                  
 
     if (transmitting && txDoneFlag) {
@@ -224,23 +229,25 @@ void loop() {
         // en segundo plano mientras se transmite
         LoRa.receive();   
     }
-
+  }
 }
 
 // --------------------------------------------------------------------
 // Sending message function
 // --------------------------------------------------------------------
-void sendMessage(uint8_t payload,  uint16_t msgCount) {
+void sendMessage(uint8_t* payload, uint8_t payloadLength, uint16_t msgCount) {
   while(!LoRa.beginPacket()) {            // Comenzamos el empaquetado del mensaje
     delay(10);                            // 
   }
+  uint8_t aux = 34;
   LoRa.write(destination);                // Añadimos el ID del destinatario
   LoRa.write(localAddress);               // Añadimos el ID del remitente
   LoRa.write((uint8_t)(msgCount >> 7));   // Añadimos el Id del mensaje (MSB primero)
   LoRa.write((uint8_t)(msgCount & 0xFF));
-  LoRa.write(payload);                     // Añadimos la información de si hay luz directa (1) o no (0)
-  LoRa.endPacket(true);                   // Finalizamos el paquete, pero no esperamos a
-                                          // finalice su transmisión
+  LoRa.write(aux); 
+  LoRa.write(payloadLength);              // Añadimos la longitud en bytes del mensaje
+  LoRa.write(payload, (size_t)payloadLength); // Añadimos el mensaje/payload 
+  LoRa.endPacket(true);
 }
 
 void onReceive(int packetSize) {
@@ -348,8 +355,7 @@ void distanceMesure() {
 }
 
 // Método que nos permite imprimir la medida que se envía
-void printDistanceMeasurement(uint8_t payload) {
-  SerialUSB.print(payload);
+void printUnitMeasurement() {
   if (ms_flag && !cm_flag && !inc_flag) {
     Serial.print(" ms ");
   } else if (!ms_flag && !cm_flag && inc_flag) {
