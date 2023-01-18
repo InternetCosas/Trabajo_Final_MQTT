@@ -240,7 +240,7 @@ void loop() {
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
         int secondSpacePositon = aux.indexOf(" ");
-        ultrasound_unit = (uint8_t)(input.substring(secondSpacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+        ultrasound_unit = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
         SerialUSB.println("\n=============================================================");
         SerialUSB.print("The delay between brightness measurements has been changed to: ");
         SerialUSB.print((int)(ultrasound_unit));
