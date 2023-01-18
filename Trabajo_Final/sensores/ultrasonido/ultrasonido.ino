@@ -291,19 +291,25 @@ void onReceive(int packetSize) {
   Serial.println(" dB");
 
   if ((int)unit_flag == 27) {
+    Serial.print("\n=============================================\n");
+    Serial.print("New unit configuration: ");
     if ((int)incomingConfig == 3) { // Cambio de unidad de medida a ms
       ms_flag = true;
       cm_flag = false;
       inc_flag = false;
+      Serial.println("ms");
     } else if ((int)incomingConfig == 2) { // Cambio de unidad de medida a inc
       inc_flag = true;
       ms_flag = false;
       cm_flag = false;
+      Serial.println("inc");
     } else { // Cambio de unidad de medida a cm
       cm_flag = true;
       inc_flag = false;
       ms_flag = false;
+      Serial.println("cm");
     }
+    Serial.println("=============================================\n");
   } else {
     Serial.print("\n=============================================\n");
     SRF02_RANGING_DELAY = (int)incomingConfig;
@@ -311,7 +317,7 @@ void onReceive(int packetSize) {
     Serial.print("New delay configuration: ");
     Serial.print(SRF02_RANGING_DELAY);
     Serial.println(" ms.");
-    Serial.print("=============================================\n");
+    Serial.println("=============================================\n");
   }
 }
 
