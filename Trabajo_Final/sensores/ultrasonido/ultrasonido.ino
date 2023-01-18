@@ -23,7 +23,7 @@
  
 #define SRF02_I2C_ADDRESS byte((0xEA)>>1)
 #define SRF02_I2C_INIT_DELAY 100 // in milliseconds
-int SRF02_RANGING_DELAY = 70 // milliseconds
+int SRF02_RANGING_DELAY = 70; // milliseconds
 
 // LCD05's command related definitions
 #define COMMAND_REGISTER byte(0x00)
@@ -46,7 +46,7 @@ int SRF02_RANGING_DELAY = 70 // milliseconds
 #define ADDRESS_CHANGE_3RD_SEQUENCE byte(165)
 #define ADDRESS_CHANGE_2ND_SEQUENCE byte(170)
 
-#define TX_LAPSE_MS          10000
+#define TX_LAPSE_MS 10000
 
 // NOTA: Ajustar estas variables 
 const uint8_t localAddress = 0xB2;     // Dirección de este dispositivo
@@ -184,16 +184,18 @@ void loop() {
     distanceMesure();
   }
 
+  uint8_t payload = real_measurement;
+
     if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
         transmitting = true;
         txDoneFlag = false;
         tx_begin_ms = millis();
     
-        sendMessage(payload, payloadLength, msgCount, d_read);
-        Serial.print("Sending new brightness measurements (");
+        sendMessage(payload, msgCount);
+        Serial.print("Sending new distance measurements (");
         Serial.print(msgCount++);
         Serial.print("): ");
-        printBinaryPayload(payload, payloadLength);
+        printDistanceMeasurement(payload);
     }                  
 
     if (transmitting && txDoneFlag) {
@@ -228,7 +230,7 @@ void loop() {
 // --------------------------------------------------------------------
 // Sending message function
 // --------------------------------------------------------------------
-void sendMessage(uint8_t* payload, uint8_t payloadLength, uint16_t msgCount, uint8_t d_read) {
+void sendMessage(uint8_t payload,  uint16_t msgCount) {
   while(!LoRa.beginPacket()) {            // Comenzamos el empaquetado del mensaje
     delay(10);                            // 
   }
@@ -236,7 +238,7 @@ void sendMessage(uint8_t* payload, uint8_t payloadLength, uint16_t msgCount, uin
   LoRa.write(localAddress);               // Añadimos el ID del remitente
   LoRa.write((uint8_t)(msgCount >> 7));   // Añadimos el Id del mensaje (MSB primero)
   LoRa.write((uint8_t)(msgCount & 0xFF));
-  LoRa.write(real_measurement);                     // Añadimos la información de si hay luz directa (1) o no (0)
+  LoRa.write(payload);                     // Añadimos la información de si hay luz directa (1) o no (0)
   LoRa.endPacket(true);                   // Finalizamos el paquete, pero no esperamos a
                                           // finalice su transmisión
 }
@@ -337,6 +339,18 @@ void distanceMesure() {
   }
   min_measurement = int((high_min<<8) | low_min);
   SerialUSB.print(min_measurement);
+  if (ms_flag && !cm_flag && !inc_flag) {
+    Serial.println(" ms.)");
+  } else if (!ms_flag && !cm_flag && inc_flag) {
+    Serial.println(" inc.)");
+  } else {
+    Serial.println(" cms.)");
+  }
+}
+
+// Método que nos permite imprimir la medida que se envía
+void printDistanceMeasurement(uint8_t payload) {
+  SerialUSB.print(payload);
   if (ms_flag && !cm_flag && !inc_flag) {
     Serial.println(" ms.)");
   } else if (!ms_flag && !cm_flag && inc_flag) {
