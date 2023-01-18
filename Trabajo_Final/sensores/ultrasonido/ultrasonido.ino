@@ -21,7 +21,7 @@
 
  // Arduino's I2C library
  
-#define SRF02_I2C_ADDRESS byte((0xE0)>>1)
+#define SRF02_I2C_ADDRESS byte((0xEA)>>1)
 #define SRF02_I2C_INIT_DELAY 100 // in milliseconds
 int SRF02_RANGING_DELAY = 70 // milliseconds
 
