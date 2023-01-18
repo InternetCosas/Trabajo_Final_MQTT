@@ -34,6 +34,7 @@ uint8_t measurement = 0;
 
 uint16_t bright_wait = 10000;
 uint16_t bright_measurement = 0;
+uint16_t distance_measurement = 0;
 
 uint16_t ultrasound_wait = 10000;
 uint16_t ultrasound_unit = 1;
