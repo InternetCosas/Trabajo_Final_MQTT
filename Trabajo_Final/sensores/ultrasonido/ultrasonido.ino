@@ -335,6 +335,7 @@ void distanceMesure() {
   byte low_min=read_register(SRF02_I2C_ADDRESS,AUTOTUNE_MINIMUM_LOW_BYTE);
   
   real_measurement = int((high_byte_range<<8) | low_byte_range);
+  SerialUSB.print("Has been measured ");
   SerialUSB.print(real_measurement);
   if (ms_flag && !cm_flag && !inc_flag) {
     Serial.print(" ms. (min=");
