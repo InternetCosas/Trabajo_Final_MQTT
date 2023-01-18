@@ -134,9 +134,21 @@ void loop() {
       char thermistor_unit_result = ms.Match("^thermistor unit [1-3]"); // Orden para modificar el tiempo entre una medida de termistor y la siguiente
 
       if (input.equalsIgnoreCase("help") || bright_result != REGEXP_MATCHED || ultrasound_delay_result != REGEXP_MATCHED || ultrasound_unit_result != REGEXP_MATCHED || thermistor_delay_result != REGEXP_MATCHED || thermistor_unit_result != REGEXP_MATCHED) {
-        SerialUSB.println("Se printea la ayuda");
+        // Si se solicita la ayuda o se escribe mal algún comando motramos todos los comandos disponibles
+        SerialUSB.println("The available commands are: ");
+        SerialUSB.println("bright [number between 0 and 255]: This command allows to modify the delay between light measurements");
+        SerialUSB.println("ultrasound delay [number between 0 and 255]: This command allows to modify the delay between distance measurements");
+        SerialUSB.println("ultrasound unit [number between 1 and 3]: This command allows to modify the unit for distance measurements");
+        SerialUSB.println("    1: It's the default option, it sets the measurement unit to centimetres (cm)");
+        SerialUSB.println("    2: It sets the measurement unit to inches (inc)");
+        SerialUSB.println("    3: It sets the measurement unit to milliseconds (ms)");
+        SerialUSB.println("thermistor delay [number between 0 and 255]: This command allows to modify the delay between temperature measurements");
+        SerialUSB.println("thermistor unit [number between 1 and 3]: This command allows to modify the unit for temperature measurements");
+        SerialUSB.println("    1: It's the default option, it sets the measurement unit to Celcius degrees(C)");
+        SerialUSB.println("    2: It sets the measurement unit to Kelvin (K)");
+        SerialUSB.println("    3: It sets the measurement unit to Fahrenheit (F)");
       }
-      if (bright_result == REGEXP_MATCHED) {
+      if (bright_result == REGEXP_MATCHED) { // Modificamos el delay de la fotorresistencia
         destination = 0xB1; // Cambiamos la direccion de destino al sensor de luminosidad
         int spacePositon = input.indexOf(" ");
         bright_wait = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
@@ -187,7 +199,7 @@ void loop() {
           LoRa.receive();   
         }
       }
-      if (ultrasound_delay_result == REGEXP_MATCHED) {
+      if (ultrasound_delay_result == REGEXP_MATCHED) { // Modificamos el delay del sensor de ultra sonido
         destination = 0xB2;  // Cambiamos la direccion de destino al sensor de ultrasonido
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
@@ -240,7 +252,7 @@ void loop() {
           LoRa.receive();   
         }
       }
-      if (ultrasound_unit_result == REGEXP_MATCHED) {
+      if (ultrasound_unit_result == REGEXP_MATCHED) { // Modificamos la unidad de medida del sensor de ultrasonido
         destination = 0xB2;  // Cambiamos la direccion de destino al sensor de ultrasonido
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
@@ -293,7 +305,7 @@ void loop() {
           LoRa.receive();   
         }
       }
-      if (thermistor_delay_result == REGEXP_MATCHED) {
+      if (thermistor_delay_result == REGEXP_MATCHED) { // Modificamos el delay del termistor
         destination = 0xB3;  // Cambiamos la direccion de destino al sensor de temperatura
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
@@ -346,7 +358,7 @@ void loop() {
           LoRa.receive();   
         }
       }
-      if (thermistor_unit_result == REGEXP_MATCHED) {
+      if (thermistor_unit_result == REGEXP_MATCHED) { // Modificamos la unidad de medida del termistor
         destination = 0xB3;  // Cambiamos la direccion de destino al sensor de temperatura
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
@@ -418,6 +430,7 @@ void sendMessage(uint8_t payload, uint16_t msgCount) {
                                           // finalice su transmisión
 }
 
+// Sending new unit configuration for a sensor
 void sendUnitMessage(uint8_t payload, uint16_t msgCount, uint8_t unit_flag) {
   while(!LoRa.beginPacket()) {            // Comenzamos el empaquetado del mensaje
     delay(10);                            // 
@@ -485,6 +498,7 @@ void onReceive(int packetSize) {
   // Mostramos las medidas de cada sensor según sus direcciones
   if (String(sender, HEX).equalsIgnoreCase("b1")) {  // Medidas de la fotorresistencia
     bright_measurement = *((uint16_t*)buffer);
+    SerialUSB.println("\n=============================================================");
     Serial.print("Remote brightness measurement: ");
     Serial.println(bright_measurement);
     Serial.print("Remote direct light measurement: ");
@@ -494,9 +508,11 @@ void onReceive(int packetSize) {
     } else {
       Serial.println(" (indirect)");
     }
+    SerialUSB.println("=============================================================");
   } else if (String(sender, HEX).equalsIgnoreCase("b2")) { // Medidas del ultrasonido
-    Serial.print("Remote ultrasound measurement: ");
     distance_measurement = *((uint16_t*)buffer);
+    SerialUSB.println("\n=============================================================");
+    Serial.print("Remote ultrasound measurement: ");
     Serial.print(distance_measurement);
     ultrasound_unit = measurement;
     if (ultrasound_unit == 3) {
@@ -506,9 +522,11 @@ void onReceive(int packetSize) {
     } else {
       Serial.println(" cm");
     }
+    SerialUSB.println("=============================================================");
   } else if (String(sender, HEX).equalsIgnoreCase("b3")) { // Medidas del termistor
-    Serial.print("Remote thermistor measurement: ");
     temperature_measurement = *((uint16_t*)buffer);
+    SerialUSB.println("\n=============================================================");
+    Serial.print("Remote thermistor measurement: ");
     Serial.print(temperature_measurement);
     thermistor_unit = measurement;
     if (thermistor_unit == 3) {
@@ -518,6 +536,7 @@ void onReceive(int packetSize) {
     } else {
       Serial.println(" C"); // Se mide en Celsius
     }
+    SerialUSB.println("=============================================================");
   } else {
     Serial.println("Unexpected sender direction: 0x" + String(sender, HEX));
   }
