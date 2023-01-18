@@ -5,7 +5,7 @@
 
 #include <math.h>
 
-const int Rc = 10000; //valor de la resistencia
+const int Rc = 21000; //valor de la resistencia
 const int Vcc = 5;
 const int SensorPIN = A1;
 
