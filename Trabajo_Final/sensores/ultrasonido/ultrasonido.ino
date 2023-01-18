@@ -23,7 +23,7 @@
  
 #define SRF02_I2C_ADDRESS byte((0xEA)>>1)
 #define SRF02_I2C_INIT_DELAY 100 // in milliseconds
-int SRF02_RANGING_DELAY = 70; // milliseconds
+int SRF02_RANGING_DELAY = 10000; // milliseconds
 
 // LCD05's command related definitions
 #define COMMAND_REGISTER byte(0x00)
@@ -313,7 +313,7 @@ void TxFinished() {
 }
 
 void distanceMesure() {
-  SerialUSB.print("ranging ...");
+  SerialUSB.println("ranging ...");
   if (ms_flag && !cm_flag && !inc_flag) {
     write_command(SRF02_I2C_ADDRESS,REAL_RANGING_MODE_USECS);
   } else if (!ms_flag && !cm_flag && inc_flag) {
@@ -322,7 +322,6 @@ void distanceMesure() {
     write_command(SRF02_I2C_ADDRESS,REAL_RANGING_MODE_CMS);
   }
   delay(SRF02_RANGING_DELAY);
-  
   byte high_byte_range=read_register(SRF02_I2C_ADDRESS,RANGE_HIGH_BYTE);
   byte low_byte_range=read_register(SRF02_I2C_ADDRESS,RANGE_LOW_BYTE);
   byte high_min=read_register(SRF02_I2C_ADDRESS,AUTOTUNE_MINIMUM_HIGH_BYTE);
@@ -352,11 +351,11 @@ void distanceMesure() {
 void printDistanceMeasurement(uint8_t payload) {
   SerialUSB.print(payload);
   if (ms_flag && !cm_flag && !inc_flag) {
-    Serial.println(" ms.)");
+    Serial.print(" ms ");
   } else if (!ms_flag && !cm_flag && inc_flag) {
-    Serial.println(" inc.)");
+    Serial.print(" inc ");
   } else {
-    Serial.println(" cms.)");
+    Serial.print(" cms ");
   }
 }
 
