@@ -181,7 +181,7 @@ void loop() {
       if (ultrasound_delay_result == REGEXP_MATCHED) {
         destination = 0xB2;  // Cambiamos la direccion de destino al sensor de ultrasonido
         int spacePositon = input.indexOf(" ");
-        String aux = input.substring(spacePositon);
+        String aux = input.substring(spacePositon+1);
         int secondSpacePositon = aux.indexOf(" ");
         ultrasound_wait = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
         SerialUSB.println("\n=============================================================");
@@ -235,7 +235,9 @@ void loop() {
       if (ultrasound_unit_result == REGEXP_MATCHED) {
         destination = 0xB2;  // Cambiamos la direccion de destino al sensor de ultrasonido
         int spacePositon = input.indexOf(" ");
-        ultrasound_unit = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+        String aux = input.substring(spacePositon+1);
+        int secondSpacePositon = aux.indexOf(" ");
+        ultrasound_unit = (uint8_t)(input.substring(secondSpacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
         SerialUSB.println("\n=============================================================");
         SerialUSB.print("The delay between brightness measurements has been changed to: ");
         SerialUSB.print((int)(ultrasound_unit));
