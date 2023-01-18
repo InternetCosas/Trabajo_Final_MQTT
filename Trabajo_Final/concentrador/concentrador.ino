@@ -428,7 +428,8 @@ void onReceive(int packetSize) {
     }
   } else if (String(sender, HEX).equals("b2")) {
     Serial.print("Remote ultrasound measurement: ");
-    Serial.print(bright_measurement);
+    distance_measurement = *((uint16_t*)buffer);
+    Serial.print(distance_measurement);
     ultrasound_unit = measurement;
     if (ultrasound_unit == 3) {
       Serial.println(" ms");
