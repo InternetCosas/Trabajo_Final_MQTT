@@ -54,16 +54,6 @@ bool celsius_flag = true;
 bool kelvin_flag = false;
 bool farh_flag = false;
 
-inline void write_command(byte address,byte command)
-{ 
-  Wire.beginTransmission(address);
-  Wire.write(COMMAND_REGISTER); 
-  Wire.write(command); 
-  Wire.endTransmission();
-}
-
-
-
 void setup()
 {
   pinMode(LDR_Apin, INPUT); // Pin por el que leeremos el nivel de luminosidad
@@ -144,8 +134,8 @@ void loop()
     temperatureMeasure();
   }
   
-  memcpy(payload, &real_measurement, payloadLength);
-  if (real_measurement != -1) {
+  memcpy(payload, &a_read, payloadLength);
+  if (d_read != -1 && a_read != -1) {
     if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
         transmitting = true;
         txDoneFlag = false;
