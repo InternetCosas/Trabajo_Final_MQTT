@@ -50,6 +50,20 @@ float C = 6.954079529e-8;
 
 float K = 2.5; //factor de disipacion en mW/C
 
+bool celsius_flag = true;
+bool kelvin_flag = false;
+bool farh_flag = false;
+
+inline void write_command(byte address,byte command)
+{ 
+  Wire.beginTransmission(address);
+  Wire.write(COMMAND_REGISTER); 
+  Wire.write(command); 
+  Wire.endTransmission();
+}
+
+
+
 void setup()
 {
   pinMode(LDR_Apin, INPUT); // Pin por el que leeremos el nivel de luminosidad
@@ -130,14 +144,149 @@ void loop()
     temperatureMeasure();
   }
   
+  memcpy(payload, &real_measurement, payloadLength);
+  if (real_measurement != -1) {
+    if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+        transmitting = true;
+        txDoneFlag = false;
+        tx_begin_ms = millis();
+    
+        sendMessage(payload, payloadLength, msgCount);
+        Serial.print("Sending new distance measurements (");
+        Serial.print(msgCount++);
+        Serial.print("): ");
+        printBinaryPayload(payload, payloadLength);
+        printUnitMeasurement();
+    }   
+    if (transmitting && txDoneFlag) {
+        uint32_t TxTime_ms = millis() - tx_begin_ms;
+        Serial.print("----> TX completed in ");
+        Serial.print(TxTime_ms);
+        Serial.println(" msecs");
+        
+        // Ajustamos txInterval_ms para respetar un duty cycle del 1% 
+        uint32_t lapse_ms = tx_begin_ms - lastSendTime_ms;
+        lastSendTime_ms = tx_begin_ms; 
+        float duty_cycle = (100.0f * TxTime_ms) / lapse_ms;
+        
+        Serial.print("Duty cycle: ");
+        Serial.print(duty_cycle, 1);
+        Serial.println(" %\n");
+
+        // Solo si el ciclo de trabajo es superior al 1% lo ajustamos
+        if (duty_cycle > 1.0f) {
+        txInterval_ms = TxTime_ms * 100;
+        }
+        
+        transmitting = false;
+        
+        // Reactivamos la recepción de mensajes, que se desactiva
+        // en segundo plano mientras se transmite
+        LoRa.receive();   
+    }
+  }
 }
 
+void sendMessage(uint8_t* payload, uint8_t payloadLength, uint16_t msgCount) {
+  while(!LoRa.beginPacket()) {            // Comenzamos el empaquetado del mensaje
+    delay(10);                            // 
+  }
+  LoRa.write(destination);                // Añadimos el ID del destinatario
+  LoRa.write(localAddress);               // Añadimos el ID del remitente
+  LoRa.write((uint8_t)(msgCount >> 7));   // Añadimos el Id del mensaje (MSB primero)
+  LoRa.write((uint8_t)(msgCount & 0xFF));
+  LoRa.write(measurement_unit); 
+  LoRa.write(payloadLength);              // Añadimos la longitud en bytes del mensaje
+  LoRa.write(payload, (size_t)payloadLength); // Añadimos el mensaje/payload 
+  LoRa.endPacket(true);
+}
+
+void onReceive(int packetSize) {
+  if (transmitting && !txDoneFlag) txDoneFlag = true;
+  
+  if (packetSize == 0) return;          // Si no hay mensajes, retornamos
+
+  // Leemos los primeros bytes del mensaje
+  uint8_t buffer[10];                   // Buffer para almacenar el mensaje
+  int recipient = LoRa.read();          // Dirección del destinatario
+  uint8_t sender = LoRa.read();         // Dirección del remitente
+                                        // msg ID (High Byte first)
+  uint16_t incomingMsgId = ((uint16_t)LoRa.read() << 7) | 
+                            (uint16_t)LoRa.read();
+  
+  uint8_t incomingConfig = LoRa.read(); // Nueva configuracion de delay o unidades
+  uint8_t unit_flag = LoRa.read(); // flag para cambio de unidades
+  
+  uint8_t receivedBytes = 1;            // Leemos el mensaje byte a byte
+
+  // Verificamos si se trata de un mensaje en broadcast o es un mensaje
+  // dirigido específicamente a este dispositivo.
+  // Nótese que este mecanismo es complementario al uso de la misma
+  // SyncWord y solo tiene sentido si hay más de dos receptores activos
+  // compartiendo la misma palabra de sincronización
+  if ((recipient & localAddress) != localAddress ) {
+    Serial.println("Receiving error: This message is not for me.");
+    return;
+  }
+
+  // Imprimimos los detalles del mensaje recibido
+  Serial.println("Received from: 0x" + String(sender, HEX));
+  Serial.println("Sent to: 0x" + String(recipient, HEX));
+  Serial.println("Message ID: " + String(incomingMsgId));
+  Serial.print("Payload: ");
+  Serial.print(incomingConfig);
+  Serial.print(", ");
+  Serial.print(receivedBytes);
+  Serial.print("\nRSSI: " + String(LoRa.packetRssi()));
+  Serial.print(" dBm\nSNR: " + String(LoRa.packetSnr()));
+  Serial.println(" dB");
+
+  if ((int)unit_flag == 27) {
+    Serial.print("\n=============================================\n");
+    Serial.print("New unit configuration: ");
+    if ((int)incomingConfig == 3) { // Cambio de unidad de medida a Celsius
+      celsius_flag = true;
+      kelvin_flag = false;
+      farh_flag = false;
+      measurement_unit = 3;
+      Serial.println("ºC");
+    } else if ((int)incomingConfig == 2) { // Cambio de unidad de medida a Kelvin
+      kelvin_flag = true;
+      celsius_flag = false;
+      farh_flag = false;
+      measurement_unit = 2;
+      Serial.println("ºK");
+    } else { // Cambio de unidad de medida a Farhenheit
+      farh_flag = true;
+      celsius_flag = false;
+      kelvin_flag = false;
+      measurement_unit = 1;
+      Serial.println("ºF");
+    }
+    Serial.println("=============================================\n");
+  } else {
+    Serial.print("\n=============================================\n");
+    wait = (int)incomingConfig;
+    wait = wait * 1000;
+    Serial.print("New delay configuration: ");
+    Serial.print(wait);
+    Serial.println(" ºC. ");
+    Serial.println("=============================================\n");
+  }
+}
+
+
+void TxFinished() {
+  txDoneFlag = true;
+}
+  
 void temperatureMeasure() {
- float raw = analogRead(SensorPIN);
+  delay(wait);
+  
+  float raw = analogRead(SensorPIN);
   float V =  raw / 1024 * Vcc;
 
   float R = (Rc * V ) / (Vcc - V);
-  
 
   float logR  = log(R);
   float R_th = 1.0 / (A + B * logR + C * logR * logR * logR );
@@ -146,9 +295,30 @@ void temperatureMeasure() {
   float celsius = kelvin - 273.15;
   float fahrenheit = celsius * 1.8 + 32;
 
-  Serial.print("T = ");
-  Serial.print(celsius);
-  Serial.print("C\n");
-  delay(2500); 
+  if (celsius_flag && !kelvin_flag && !farh_flag) {
+    Serial.print(" ºC ");
+  } else if (!celsius_flag && !kelvin_flag && farh_flag) {
+    Serial.print(" ºF ");
+  } else {
+    Serial.print(" ºK ");
+  }
   
+}
+  
+ // Método que nos permite imprimir la medida que se envía
+void printUnitMeasurement() {
+  if (celsius_flag && !kelvin_flag && !farh_flag) {
+    Serial.print(" ºC ");
+  } else if (!celsius_flag && !kelvin_flag && farh_flag) {
+    Serial.print(" ºF ");
+  } else {
+    Serial.print(" ºK ");
+  }
+}
+
+void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
+  for (int i = 0; i < payloadLength-1; i++) {
+    Serial.print(payload[i], HEX);
+    Serial.print(" ");
+  }
 }
