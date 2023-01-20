@@ -186,7 +186,7 @@ void loop() {
 
   real_measurement = -1;
   if(!transmitting) {
-    distanceMesure();
+    distanceMeasure();
   }
   
   memcpy(payload, &real_measurement, payloadLength);
@@ -328,7 +328,7 @@ void TxFinished() {
   txDoneFlag = true;
 }
 
-void distanceMesure() {
+void distanceMeasure() {
   SerialUSB.println("ranging ...");
   if (ms_flag && !cm_flag && !inc_flag) {
     write_command(SRF02_I2C_ADDRESS,REAL_RANGING_MODE_USECS);
