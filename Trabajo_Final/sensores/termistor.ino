@@ -33,6 +33,7 @@ void loop()
 
   float kelvin = R_th - V*V/(K * R)*1000;
   float celsius = kelvin - 273.15;
+  float fahrenheit = celsius * 1.8 + 32;
 
   Serial.print("T = ");
   Serial.print(celsius);
