@@ -144,7 +144,7 @@ void loop()
         tx_begin_ms = millis();
     
         sendMessage(payload, payloadLength, msgCount);
-        Serial.print("Sending new distance measurements (");
+        Serial.print("Sending new temperature measurements (");
         Serial.print(msgCount++);
         Serial.print("): ");
         printBinaryPayload(payload, payloadLength);
@@ -217,7 +217,7 @@ void onReceive(int packetSize) {
   // SyncWord y solo tiene sentido si hay más de dos receptores activos
   // compartiendo la misma palabra de sincronización
   if ((recipient & localAddress) != localAddress ) {
-    Serial.println("Receiving error: This message is not for me.");
+    Serial.println("Receiving error: This message is not for me.\n");
     return;
   }
 
@@ -241,19 +241,19 @@ void onReceive(int packetSize) {
       kelvin_flag = false;
       farh_flag = false;
       measurement_unit = 1;
-      Serial.println("ºC");
+      Serial.println("C");
     } else if ((int)incomingConfig == 2) { // Cambio de unidad de medida a Kelvin
       kelvin_flag = true;
       celsius_flag = false;
       farh_flag = false;
       measurement_unit = 2;
-      Serial.println("ºK");
+      Serial.println("K");
     } else { // Cambio de unidad de medida a Farhenheit
       farh_flag = true;
       celsius_flag = false;
       kelvin_flag = false;
       measurement_unit = 3;
-      Serial.println("ºF");
+      Serial.println("F");
     }
     Serial.println("=============================================\n");
   } else {
@@ -263,11 +263,11 @@ void onReceive(int packetSize) {
     Serial.print("New delay configuration: ");
     Serial.print(wait);
     if (celsius_flag && !kelvin_flag && !farh_flag) {
-    Serial.print(" ºC ");
+    Serial.print(" C ");
   } else if (!celsius_flag && !kelvin_flag && farh_flag) {
-    Serial.print(" ºF ");
+    Serial.print(" F ");
   } else {
-    Serial.print(" ºK ");
+    Serial.print(" K ");
   }
     Serial.println("=============================================\n");
   }
@@ -293,12 +293,17 @@ void temperatureMeasure() {
   float celsius = kelvin - 273.15;
   float fahrenheit = celsius * 1.8 + 32;
 
+   SerialUSB.print("Has been measured ");
+
   if (celsius_flag && !kelvin_flag && !farh_flag) {
-    Serial.print(" ºC ");
+    SerialUSB.print(celsius);
+    Serial.print(" C\n");
   } else if (!celsius_flag && !kelvin_flag && farh_flag) {
-    Serial.print(" ºF ");
+    SerialUSB.print(fahrenheit);
+    Serial.print(" F\n");
   } else {
-    Serial.print(" ºK ");
+    SerialUSB.print(kelvin);
+    Serial.print(" K\n");
   }
   
 }
@@ -306,17 +311,17 @@ void temperatureMeasure() {
  // Método que nos permite imprimir la medida que se envía
 void printUnitMeasurement() {
   if (celsius_flag && !kelvin_flag && !farh_flag) {
-    Serial.print(" ºC ");
+    Serial.print("C ");
   } else if (!celsius_flag && !kelvin_flag && farh_flag) {
-    Serial.print(" ºF ");
+    Serial.print("F ");
   } else {
-    Serial.print(" ºK ");
+    Serial.print("K ");
   }
 }
 
 void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
   for (int i = 0; i < payloadLength-1; i++) {
-    Serial.print(payload[i], HEX);
+    Serial.print(payload[i], DEC);
     Serial.print(" ");
   }
 }
