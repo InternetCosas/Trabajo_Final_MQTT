@@ -37,7 +37,6 @@ static uint16_t msgCount = 0;
 const int LDR_Apin = A1;
 const int LDR_Dpin = 2;
 int wait = 10000;
-uint8_t d_read = -1;
 uint16_t a_read = -1;
 
 const int Rc = 21000; //valor de la resistencia
@@ -130,14 +129,13 @@ void loop()
   uint8_t payload[2];
   uint8_t payloadLength = 2;
 
-  d_read = -1;
   a_read = -1;
   if(!transmitting) {
     temperatureMeasure();
   }
   
   memcpy(payload, &a_read, payloadLength);
-  if (d_read != -1 && a_read != -1) {
+  if (a_read != -1) {
     if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
         transmitting = true;
         txDoneFlag = false;
@@ -297,13 +295,16 @@ void temperatureMeasure() {
 
   if (celsius_flag && !kelvin_flag && !farh_flag) {
     SerialUSB.print(celsius);
-    Serial.print(" C\n");
+    Serial.print(" C ");
+    a_read = celsius;
   } else if (!celsius_flag && !kelvin_flag && farh_flag) {
     SerialUSB.print(fahrenheit);
-    Serial.print(" F\n");
+    Serial.print(" F ");
+    a_read = fahrenheit;
   } else {
     SerialUSB.print(kelvin);
-    Serial.print(" K\n");
+    Serial.print(" K ");
+    a_read = kelvin;
   }
   
 }
