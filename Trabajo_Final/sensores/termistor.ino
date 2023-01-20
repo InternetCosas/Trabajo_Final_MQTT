@@ -39,7 +39,7 @@ const int LDR_Dpin = 2;
 int wait = 10000;
 uint16_t a_read = -1;
 
-const int Rc = 21000; //valor de la resistencia
+const int Rc = 10000; //valor de la resistencia
 const int Vcc = 5;
 const int SensorPIN = A1;
 
@@ -146,7 +146,6 @@ void loop()
         Serial.print(msgCount++);
         Serial.print("): ");
         printBinaryPayload(payload, payloadLength);
-        printUnitMeasurement();
     }   
     if (transmitting && txDoneFlag) {
         uint32_t TxTime_ms = millis() - tx_begin_ms;
@@ -260,13 +259,7 @@ void onReceive(int packetSize) {
     wait = wait * 1000;
     Serial.print("New delay configuration: ");
     Serial.print(wait);
-    if (celsius_flag && !kelvin_flag && !farh_flag) {
-    Serial.print(" C ");
-  } else if (!celsius_flag && !kelvin_flag && farh_flag) {
-    Serial.print(" F ");
-  } else {
-    Serial.print(" K ");
-  }
+    Serial.print(" ms\n");
     Serial.println("=============================================\n");
   }
 }
@@ -295,34 +288,23 @@ void temperatureMeasure() {
 
   if (celsius_flag && !kelvin_flag && !farh_flag) {
     SerialUSB.print(celsius);
-    Serial.print(" C ");
+    Serial.print(" C\n");
     a_read = celsius;
   } else if (!celsius_flag && !kelvin_flag && farh_flag) {
     SerialUSB.print(fahrenheit);
-    Serial.print(" F ");
+    Serial.print(" F\n");
     a_read = fahrenheit;
   } else {
     SerialUSB.print(kelvin);
-    Serial.print(" K ");
+    Serial.print(" K\n");
     a_read = kelvin;
   }
   
 }
-  
- // Método que nos permite imprimir la medida que se envía
-void printUnitMeasurement() {
-  if (celsius_flag && !kelvin_flag && !farh_flag) {
-    Serial.print("C ");
-  } else if (!celsius_flag && !kelvin_flag && farh_flag) {
-    Serial.print("F ");
-  } else {
-    Serial.print("K ");
-  }
-}
 
 void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
   for (int i = 0; i < payloadLength-1; i++) {
-    Serial.print(payload[i], DEC);
+    Serial.print(payload[i], HEX);
     Serial.print(" ");
   }
 }
