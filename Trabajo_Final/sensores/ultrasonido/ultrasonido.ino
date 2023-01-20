@@ -274,7 +274,7 @@ void onReceive(int packetSize) {
   // SyncWord y solo tiene sentido si hay más de dos receptores activos
   // compartiendo la misma palabra de sincronización
   if ((recipient & localAddress) != localAddress ) {
-    Serial.println("Receiving error: This message is not for me.");
+    Serial.println("\nReceiving error: This message is not for me.\n");
     return;
   }
 
