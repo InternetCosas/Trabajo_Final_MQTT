@@ -54,6 +54,8 @@ bool celsius_flag = true;
 bool kelvin_flag = false;
 bool farh_flag = false;
 
+int measurement_unit = 1;
+
 void setup()
 {
   pinMode(LDR_Apin, INPUT); // Pin por el que leeremos el nivel de luminosidad
