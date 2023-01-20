@@ -512,7 +512,8 @@ void onReceive(int packetSize) {
     bright_measurement = *((uint16_t*)buffer);
     SerialUSB.println("\n=============================================================");
     Serial.print("Remote brightness measurement: ");
-    Serial.println(bright_measurement);
+    Serial.print(bright_measurement);
+    Serial.println(" Lux");
     Serial.print("Remote direct light measurement: ");
     Serial.print(measurement);
     if (measurement == 1) {
