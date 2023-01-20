@@ -313,7 +313,7 @@ void loop() {
         }
       }
       if (thermistor_delay_result == REGEXP_MATCHED) { // Modificamos el delay del termistor
-        destination = 0xB3;  // Cambiamos la direccion de destino al sensor de temperatura
+        destination = 0xC1;  // Cambiamos la direccion de destino al sensor de temperatura
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
         int secondSpacePositon = aux.indexOf(" ");
@@ -366,7 +366,7 @@ void loop() {
         }
       }
       if (thermistor_unit_result == REGEXP_MATCHED) { // Modificamos la unidad de medida del termistor
-        destination = 0xB3;  // Cambiamos la direccion de destino al sensor de temperatura
+        destination = 0xC1;  // Cambiamos la direccion de destino al sensor de temperatura
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
         int secondSpacePositon = aux.indexOf(" ");
@@ -536,7 +536,7 @@ void onReceive(int packetSize) {
     }
     Serial.println(ultrasound_msg);
     SerialUSB.println("=============================================================");
-  } else if (String(sender, HEX).equalsIgnoreCase("b3")) { // Medidas del termistor
+  } else if (String(sender, HEX).equalsIgnoreCase("c1")) { // Medidas del termistor
     temperature_measurement = *((uint16_t*)buffer);
     SerialUSB.println("\n=============================================================");
     String temperature_msg = "Remote thermistor measurement: " + String(temperature_measurement);

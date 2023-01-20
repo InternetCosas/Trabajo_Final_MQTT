@@ -12,7 +12,7 @@
 #define TX_LAPSE_MS          10000
 
 // NOTA: Ajustar estas variables 
-const uint8_t localAddress = 0xB3;     // Dirección de este dispositivo
+const uint8_t localAddress = 0xC1;     // Dirección de este dispositivo
 uint8_t destination = 0xB0;            // Dirección de destino, 0xFF es la dirección de broadcast
 
 volatile bool txDoneFlag = true;       // Flag para indicar cuando ha finalizado una transmisión
