@@ -135,6 +135,7 @@ void loop() {
 
       if (input.equalsIgnoreCase("help") || bright_result != REGEXP_MATCHED || ultrasound_delay_result != REGEXP_MATCHED || ultrasound_unit_result != REGEXP_MATCHED || thermistor_delay_result != REGEXP_MATCHED || thermistor_unit_result != REGEXP_MATCHED) {
         // Si se solicita la ayuda o se escribe mal algún comando motramos todos los comandos disponibles
+        SerialUSB.println("\n=============================================================");
         SerialUSB.println("The available commands are: ");
         SerialUSB.println("bright [number between 0 and 255]: This command allows to modify the delay between light measurements");
         SerialUSB.println("ultrasound delay [number between 0 and 255]: This command allows to modify the delay between distance measurements");
@@ -147,6 +148,7 @@ void loop() {
         SerialUSB.println("    1: It's the default option, it sets the measurement unit to Celcius degrees(C)");
         SerialUSB.println("    2: It sets the measurement unit to Kelvin (K)");
         SerialUSB.println("    3: It sets the measurement unit to Fahrenheit (F)");
+        SerialUSB.println("=============================================================");
       }
       if (bright_result == REGEXP_MATCHED) { // Modificamos el delay de la fotorresistencia
         destination = 0xB1; // Cambiamos la direccion de destino al sensor de luminosidad
@@ -260,8 +262,13 @@ void loop() {
         ultrasound_unit = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos la unidad de medida para la distancia
         SerialUSB.println("\n=============================================================");
         SerialUSB.print("The unit for distance measurements has been changed to: ");
-        SerialUSB.print((int)(ultrasound_unit));
-        SerialUSB.println("ms");
+        if (ultrasound_unit == 3) {
+          Serial.println("ms");
+        } else if (ultrasound_unit == 2) {
+          Serial.println("inc");
+        } else {
+          Serial.println("cm");
+        }
         SerialUSB.println("=============================================================");
         uint8_t payload = ultrasound_unit;
 
@@ -366,8 +373,13 @@ void loop() {
         thermistor_unit = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos la unidad de medida para la temperatura
         SerialUSB.println("\n=============================================================");
         SerialUSB.print("The unit for temperature measurements has been changed to: ");
-        SerialUSB.print((int)(thermistor_unit));
-        SerialUSB.println("ms");
+        if (thermistor_unit == 3) {
+          Serial.println("Fahrenheit");
+        } else if (thermistor_unit == 2) {
+          Serial.println("Kelvin");
+        } else {
+          Serial.println("Celsius");
+        }
         SerialUSB.println("=============================================================");
         uint8_t payload = thermistor_unit;
 
