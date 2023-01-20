@@ -511,43 +511,43 @@ void onReceive(int packetSize) {
   if (String(sender, HEX).equalsIgnoreCase("b1")) {  // Medidas de la fotorresistencia
     bright_measurement = *((uint16_t*)buffer);
     SerialUSB.println("\n=============================================================");
-    Serial.print("Remote brightness measurement: ");
-    Serial.println(bright_measurement);
-    Serial.print("Remote direct light measurement: ");
-    Serial.print(measurement);
+    String bright_msg = "Remote brightness measurement: " + String(bright_measurement);
+    Serial.println(bright_msg);
+    String light_msg = "Remote direct light measurement: " + String(measurement);
     if (measurement == 1) {
-      Serial.println(" (direct)");
+      light_msg = light_msg + " (direct)";
     } else {
-      Serial.println(" (indirect)");
+      light_msg = light_msg + " (indirect)";
     }
+    Serial.print(light_msg);
     SerialUSB.println("=============================================================");
   } else if (String(sender, HEX).equalsIgnoreCase("b2")) { // Medidas del ultrasonido
     distance_measurement = *((uint16_t*)buffer);
     SerialUSB.println("\n=============================================================");
-    Serial.print("Remote ultrasound measurement: ");
-    Serial.print(distance_measurement);
+    String ultrasound_msg = "Remote ultrasound measurement: " + String(distance_measurement);
     ultrasound_unit = measurement;
     if (ultrasound_unit == 3) {
-      Serial.println(" ms");
+      ultrasound_msg = ultrasound_msg + " ms";
     } else if (ultrasound_unit == 2) {
-      Serial.println(" inc");
+      ultrasound_msg = ultrasound_msg + " inc";
     } else {
-      Serial.println(" cm");
+      ultrasound_msg = ultrasound_msg + " cm";
     }
+    Serial.println(ultrasound_msg);
     SerialUSB.println("=============================================================");
   } else if (String(sender, HEX).equalsIgnoreCase("b3")) { // Medidas del termistor
     temperature_measurement = *((uint16_t*)buffer);
     SerialUSB.println("\n=============================================================");
-    Serial.print("Remote thermistor measurement: ");
-    Serial.print(temperature_measurement);
+    String temperature_msg = "Remote thermistor measurement: " + String(temperature_measurement);
     thermistor_unit = measurement;
     if (thermistor_unit == 3) {
-      Serial.println(" F"); // Se mide en Fahrenheit
+      temperature_msg = temperature_msg + " F"; // Se mide en Fahrenheit
     } else if (thermistor_unit == 2) {
-      Serial.println(" K"); // Se mide en Kelvin
+      temperature_msg = temperature_msg + " K"; // Se mide en Kelvin
     } else {
-      Serial.println(" C"); // Se mide en Celsius
+      temperature_msg = temperature_msg + " C"; // Se mide en Celsius
     }
+    Serial.println(temperature_msg);
     SerialUSB.println("=============================================================");
   } else {
     Serial.println("Unexpected sender direction: 0x" + String(sender, HEX));
