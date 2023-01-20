@@ -244,11 +244,11 @@ void onReceive(int packetSize) {
   if ((int)unit_flag == 27) {
     Serial.print("\n=============================================\n");
     Serial.print("New unit configuration: ");
-    if ((int)incomingConfig == 3) { // Cambio de unidad de medida a Celsius
+    if ((int)incomingConfig == 1) { // Cambio de unidad de medida a Celsius
       celsius_flag = true;
       kelvin_flag = false;
       farh_flag = false;
-      measurement_unit = 3;
+      measurement_unit = 1;
       Serial.println("ºC");
     } else if ((int)incomingConfig == 2) { // Cambio de unidad de medida a Kelvin
       kelvin_flag = true;
@@ -260,7 +260,7 @@ void onReceive(int packetSize) {
       farh_flag = true;
       celsius_flag = false;
       kelvin_flag = false;
-      measurement_unit = 1;
+      measurement_unit = 3;
       Serial.println("ºF");
     }
     Serial.println("=============================================\n");
@@ -270,7 +270,13 @@ void onReceive(int packetSize) {
     wait = wait * 1000;
     Serial.print("New delay configuration: ");
     Serial.print(wait);
-    Serial.println(" ºC. ");
+    if (celsius_flag && !kelvin_flag && !farh_flag) {
+    Serial.print(" ºC ");
+  } else if (!celsius_flag && !kelvin_flag && farh_flag) {
+    Serial.print(" ºF ");
+  } else {
+    Serial.print(" ºK ");
+  }
     Serial.println("=============================================\n");
   }
 }
