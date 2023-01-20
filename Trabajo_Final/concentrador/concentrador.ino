@@ -6,12 +6,17 @@
 #include <LoRa.h>
 #include <Arduino_PMIC.h>
 #include <Regexp.h>
+#include <Wire.h>
 
+#define LCD05  0x63                   // Dirección de LCD05
 #define TX_LAPSE_MS          10000
+
+byte buffer[3];
+char stringBuf[24];
 
 // NOTA: Ajustar estas variables 
 const uint8_t localAddress = 0xB0;     // Dirección de este dispositivo
-uint8_t destination = 0xFF;            // Dirección de destino, 0xFF es la dirección de broadcast
+static uint8_t  destination = 0xFF;            // Dirección de destino, 0xFF es la dirección de broadcast
 
 volatile bool txDoneFlag = true;       // Flag para indicar cuando ha finalizado una transmisión
 volatile bool transmitting = false;
@@ -105,7 +110,9 @@ void setup() {
   // Nótese que la recepción está activada a partir de este punto
   LoRa.receive();
 
-  Serial.println("LoRa init succeeded.\n");
+  clearLCDScreen();
+  writeLCDMsg(" LoRa init succeeded");
+  delay(5000);
 }
 
 // --------------------------------------------------------------------
@@ -510,6 +517,10 @@ void onReceive(int packetSize) {
   // Mostramos las medidas de cada sensor según sus direcciones
   if (String(sender, HEX).equalsIgnoreCase("b1")) {  // Medidas de la fotorresistencia
     bright_measurement = *((uint16_t*)buffer);
+
+    clearLCDScreen();
+    writeLCDMsg(" Brightness: "+ String(bright_measurement)+" Lux. Direct: "+ measurement);
+
     SerialUSB.println("\n=============================================================");
     String bright_msg = "Remote brightness measurement: " + String(bright_measurement);
     bright_msg = bright_msg + " Lux";
@@ -524,6 +535,10 @@ void onReceive(int packetSize) {
     SerialUSB.println("=============================================================");
   } else if (String(sender, HEX).equalsIgnoreCase("b2")) { // Medidas del ultrasonido
     distance_measurement = *((uint16_t*)buffer);
+
+    clearLCDScreen();
+    writeLCDMsg(" Ultrasound: "+ String(distance_measurement)+". Measure: "+ ultrasound_unit);
+
     SerialUSB.println("\n=============================================================");
     String ultrasound_msg = "Remote ultrasound measurement: " + String(distance_measurement);
     ultrasound_unit = measurement;
@@ -538,6 +553,10 @@ void onReceive(int packetSize) {
     SerialUSB.println("=============================================================");
   } else if (String(sender, HEX).equalsIgnoreCase("c1")) { // Medidas del termistor
     temperature_measurement = *((uint16_t*)buffer);
+
+    clearLCDScreen();
+    writeLCDMsg(" Thermistor: "+ String(temperature_measurement)+". Measure: "+ thermistor_unit);
+    
     SerialUSB.println("\n=============================================================");
     String temperature_msg = "Remote thermistor measurement: " + String(temperature_measurement);
     thermistor_unit = measurement;
@@ -564,4 +583,22 @@ void printBinaryPayload(uint8_t * payload, uint8_t payloadLength) {
     Serial.print(payload[i], HEX);
     Serial.print(" ");
   }
+}
+
+void clearLCDScreen(){
+  Wire.begin();
+  buffer[0] = 0;                       // Clear the screen
+  buffer[1] = 12;
+  Wire.beginTransmission(LCD05);
+  Wire.write(buffer,2); 
+  Wire.endTransmission();
+}
+
+void writeLCDMsg(String msg){
+  int len = msg.length() + 1;       // Length of the message
+  msg.toCharArray(stringBuf, len);  // Convert the message to a car array
+  stringBuf[0] = 0;                     // First byte of message to 0 (LCD05 command register)
+  Wire.beginTransmission(LCD05);
+  Wire.write(stringBuf, len);
+  Wire.endTransmission();
 }
