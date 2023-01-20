@@ -511,7 +511,7 @@ void onReceive(int packetSize) {
   if (String(sender, HEX).equalsIgnoreCase("b1")) {  // Medidas de la fotorresistencia
     bright_measurement = *((uint16_t*)buffer);
     SerialUSB.println("\n=============================================================");
-    String bright_msg = "Remote brightness measurement: " + String(bright_measurement);
+    String bright_msg = "Remote brightness measurement: " + String(bright_measurement) + " Lux";
     Serial.println(bright_msg);
     String light_msg = "Remote direct light measurement: " + String(measurement);
     if (measurement == 1) {
