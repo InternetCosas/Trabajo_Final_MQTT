@@ -536,12 +536,13 @@ void onReceive(int packetSize) {
   } else if (String(sender, HEX).equalsIgnoreCase("b2")) { // Medidas del ultrasonido
     distance_measurement = *((uint16_t*)buffer);
 
-    clearLCDScreen();
-    writeLCDMsg(" Ultrasound: "+ String(distance_measurement)+". Measure: "+ ultrasound_unit);
-
     SerialUSB.println("\n=============================================================");
     String ultrasound_msg = "Remote ultrasound measurement: " + String(distance_measurement);
     ultrasound_unit = measurement;
+
+    clearLCDScreen();
+    writeLCDMsg(" Ultrasound: "+ String(distance_measurement)+". Measure: "+ ultrasound_unit);
+    
     if (ultrasound_unit == 3) {
       ultrasound_msg = ultrasound_msg + " ms";
     } else if (ultrasound_unit == 2) {
@@ -553,13 +554,14 @@ void onReceive(int packetSize) {
     SerialUSB.println("=============================================================");
   } else if (String(sender, HEX).equalsIgnoreCase("c1")) { // Medidas del termistor
     temperature_measurement = *((uint16_t*)buffer);
-
-    clearLCDScreen();
-    writeLCDMsg(" Thermistor: "+ String(temperature_measurement)+". Measure: "+ thermistor_unit);
     
     SerialUSB.println("\n=============================================================");
     String temperature_msg = "Remote thermistor measurement: " + String(temperature_measurement);
     thermistor_unit = measurement;
+
+    clearLCDScreen();
+    writeLCDMsg(" Thermistor: "+ String(temperature_measurement)+". Measure: "+ thermistor_unit);
+    
     if (thermistor_unit == 3) {
       temperature_msg = temperature_msg + " F"; // Se mide en Fahrenheit
     } else if (thermistor_unit == 2) {
