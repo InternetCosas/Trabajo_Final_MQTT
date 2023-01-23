@@ -258,13 +258,13 @@ void loop() {
         tx_begin_ms = millis();
         if (delay_flag) {
           if (bright_flag) {
-            Serial.print("Sending new bright delay unit (");
+            Serial.print("Sending new bright delay (");
           }
           if (thermistor_flag) {
-            Serial.print("Sending new thermistor delay unit (");
+            Serial.print("Sending new thermistor delay (");
           }
           if (ultrasound_flag) {
-            Serial.print("Sending new ultrasound delay unit (");
+            Serial.print("Sending new ultrasound delay (");
           }
           sendMessage(payload, msgCount);
         }
@@ -273,7 +273,7 @@ void loop() {
             Serial.print("Sending new thermistor measurements unit (");
           }
           if (ultrasound_flag) {
-            Serial.print("Sending new ultrasound delay unit (");
+            Serial.print("Sending new ultrasound measurements unit (");
           }
           sendUnitMessage(payload, msgCount, 27);
         }
