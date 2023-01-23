@@ -260,6 +260,13 @@ void onReceive(int packetSize) {
   int recipient = LoRa.read();          // Dirección del destinatario
   uint8_t sender = LoRa.read();         // Dirección del remitente
                                         // msg ID (High Byte first)
+
+  // en caso de que no provenga de la direccion a0, muestra mensaje de error
+  if (! String(sender, HEX).equalsIgnoreCase("a0") || ((recipient & localAddress) != localAddress )) {
+    Serial.println("\nReceiving error: This message is not for me.\n");
+    return;
+  }
+  
   uint16_t incomingMsgId = ((uint16_t)LoRa.read() << 7) | 
                             (uint16_t)LoRa.read();
   
@@ -267,16 +274,6 @@ void onReceive(int packetSize) {
   uint8_t unit_flag = LoRa.read(); // flag para cambio de unidades
   
   uint8_t receivedBytes = 1;            // Leemos el mensaje byte a byte
-
-  // Verificamos si se trata de un mensaje en broadcast o es un mensaje
-  // dirigido específicamente a este dispositivo.
-  // Nótese que este mecanismo es complementario al uso de la misma
-  // SyncWord y solo tiene sentido si hay más de dos receptores activos
-  // compartiendo la misma palabra de sincronización
-  if ((recipient & localAddress) != localAddress ) {
-    Serial.println("\nReceiving error: This message is not for me.\n");
-    return;
-  }
 
   // Imprimimos los detalles del mensaje recibido
   Serial.println("Received from: 0x" + String(sender, HEX));
