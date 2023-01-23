@@ -101,7 +101,7 @@ void setup()
                                   // Rango [2, 20] en dBm
                                   // Importante seleccionar un valor bajo para pruebas
                                   // a corta distancia y evitar saturar al receptor
-  LoRa.setSyncWord(0x12);         // Palabra de sincronización privada por defecto para SX127X 
+  LoRa.setSyncWord(0xEA);         // Palabra de sincronización privada por defecto para SX127X 
                                   // Usaremos la palabra de sincronización para crear diferentes
                                   // redes privadas por equipos
   LoRa.setPreambleLength(8);      // Número de símbolos a usar como preámbulo
@@ -199,6 +199,11 @@ void onReceive(int packetSize) {
   uint8_t buffer[10];                   // Buffer para almacenar el mensaje
   int recipient = LoRa.read();          // Dirección del destinatario
   uint8_t sender = LoRa.read();         // Dirección del remitente
+
+  if (!(String(sender, HEX).equalsIgnoreCase("a0")) || ((recipient & localAddress) != localAddress)) {
+    Serial.println("Receiving error: This message is not for me.\n");
+    return;
+  }
                                         // msg ID (High Byte first)
   uint16_t incomingMsgId = ((uint16_t)LoRa.read() << 7) | 
                             (uint16_t)LoRa.read();
@@ -213,10 +218,7 @@ void onReceive(int packetSize) {
   // Nótese que este mecanismo es complementario al uso de la misma
   // SyncWord y solo tiene sentido si hay más de dos receptores activos
   // compartiendo la misma palabra de sincronización
-  if ((recipient & localAddress) != localAddress ) {
-    Serial.println("Receiving error: This message is not for me.\n");
-    return;
-  }
+  
 
   // Imprimimos los detalles del mensaje recibido
   Serial.println("Received from: 0x" + String(sender, HEX));
