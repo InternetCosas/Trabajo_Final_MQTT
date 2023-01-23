@@ -23,7 +23,7 @@
  
 #define SRF02_I2C_ADDRESS byte((0xEA)>>1)
 #define SRF02_I2C_INIT_DELAY 100 // in milliseconds
-int SRF02_RANGING_DELAY = 10000; // milliseconds
+int SRF02_RANGING_DELAY = 11000; // milliseconds
 
 // LCD05's command related definitions
 #define COMMAND_REGISTER byte(0x00)
@@ -49,8 +49,8 @@ int SRF02_RANGING_DELAY = 10000; // milliseconds
 #define TX_LAPSE_MS 10000
 
 // NOTA: Ajustar estas variables 
-const uint8_t localAddress = 0xB2;     // Dirección de este dispositivo
-uint8_t destination = 0xB0;            // Dirección de destino, 0xFF es la dirección de broadcast
+const uint8_t localAddress = 0xD1;     // Dirección de este dispositivo
+uint8_t destination = 0xA0;            // Dirección de destino, 0xFF es la dirección de broadcast
 
 volatile bool txDoneFlag = true;       // Flag para indicar cuando ha finalizado una transmisión
 volatile bool transmitting = false;
@@ -155,7 +155,7 @@ void setup()
                                   // Rango [2, 20] en dBm
                                   // Importante seleccionar un valor bajo para pruebas
                                   // a corta distancia y evitar saturar al receptor
-  LoRa.setSyncWord(0x12);         // Palabra de sincronización privada por defecto para SX127X 
+  LoRa.setSyncWord(0xEA);         // Palabra de sincronización privada por defecto para SX127X 
                                   // Usaremos la palabra de sincronización para crear diferentes
                                   // redes privadas por equipos
   LoRa.setPreambleLength(8);      // Número de símbolos a usar como preámbulo

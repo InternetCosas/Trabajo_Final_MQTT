@@ -15,7 +15,7 @@ byte buffer[3];
 char stringBuf[24];
 
 // NOTA: Ajustar estas variables 
-const uint8_t localAddress = 0xB0;     // Dirección de este dispositivo
+const uint8_t localAddress = 0xA0;     // Dirección de este dispositivo
 static uint8_t  destination = 0xFF;            // Dirección de destino, 0xFF es la dirección de broadcast
 
 volatile bool txDoneFlag = true;       // Flag para indicar cuando ha finalizado una transmisión
@@ -94,7 +94,7 @@ void setup() {
                                   // Rango [2, 20] en dBm
                                   // Importante seleccionar un valor bajo para pruebas
                                   // a corta distancia y evitar saturar al receptor
-  LoRa.setSyncWord(0x12);         // Palabra de sincronización privada por defecto para SX127X 
+  LoRa.setSyncWord(0xEA);         // Palabra de sincronización privada por defecto para SX127X 
                                   // Usaremos la palabra de sincronización para crear diferentes
                                   // redes privadas por equipos
   LoRa.setPreambleLength(8);      // Número de símbolos a usar como preámbulo
@@ -140,7 +140,7 @@ void loop() {
       char thermistor_delay_result = ms.Match("^thermistor delay [0-9]+"); // Orden para modificar el tiempo entre una medida de termistor y la siguiente
       char thermistor_unit_result = ms.Match("^thermistor unit [1-3]"); // Orden para modificar el tiempo entre una medida de termistor y la siguiente
 
-      if (input.equalsIgnoreCase("help") || bright_result != REGEXP_MATCHED || ultrasound_delay_result != REGEXP_MATCHED || ultrasound_unit_result != REGEXP_MATCHED || thermistor_delay_result != REGEXP_MATCHED || thermistor_unit_result != REGEXP_MATCHED) {
+      if (input.equalsIgnoreCase("help")) {
         // Si se solicita la ayuda o se escribe mal algún comando motramos todos los comandos disponibles
         SerialUSB.println("\n=============================================================");
         SerialUSB.println("The available commands are: ");
@@ -209,7 +209,7 @@ void loop() {
         }
       }
       if (ultrasound_delay_result == REGEXP_MATCHED) { // Modificamos el delay del sensor de ultra sonido
-        destination = 0xB2;  // Cambiamos la direccion de destino al sensor de ultrasonido
+        destination = 0xD1;  // Cambiamos la direccion de destino al sensor de ultrasonido
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
         int secondSpacePositon = aux.indexOf(" ");
@@ -262,7 +262,7 @@ void loop() {
         }
       }
       if (ultrasound_unit_result == REGEXP_MATCHED) { // Modificamos la unidad de medida del sensor de ultrasonido
-        destination = 0xB2;  // Cambiamos la direccion de destino al sensor de ultrasonido
+        destination = 0xD1;  // Cambiamos la direccion de destino al sensor de ultrasonido
         int spacePositon = input.indexOf(" ");
         String aux = input.substring(spacePositon+1);
         int secondSpacePositon = aux.indexOf(" ");
@@ -533,7 +533,7 @@ void onReceive(int packetSize) {
     }
     Serial.println(light_msg);
     SerialUSB.println("=============================================================");
-  } else if (String(sender, HEX).equalsIgnoreCase("b2")) { // Medidas del ultrasonido
+  } else if (String(sender, HEX).equalsIgnoreCase("d1")) { // Medidas del ultrasonido
     distance_measurement = *((uint16_t*)buffer);
 
     SerialUSB.println("\n=============================================================");
