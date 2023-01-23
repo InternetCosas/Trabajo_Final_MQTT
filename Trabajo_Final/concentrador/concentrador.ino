@@ -253,8 +253,7 @@ void loop() {
     if (delay_flag || unit_flag) {
       if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
         transmitting = true;
-        //txDoneFlag = false;
-        txDoneFlag = true;
+        txDoneFlag = false;
         tx_begin_ms = millis();
         if (delay_flag) {
           if (bright_flag) {
