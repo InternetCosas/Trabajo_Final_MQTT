@@ -18,7 +18,8 @@ char stringBuf[24];
 const uint8_t localAddress = 0xA0;     // Dirección de este dispositivo
 static uint8_t  destination = 0xFF;            // Dirección de destino, 0xFF es la dirección de broadcast
 
-volatile bool txDoneFlag = false;       // Flag para indicar cuando ha finalizado una transmisión
+//volatile bool txDoneFlag = false;       // Flag para indicar cuando ha finalizado una transmisión
+volatile bool txDoneFlag = true;
 volatile bool transmitting = false;
 
 // Estructura para almacenar la configuración de la radio
@@ -361,7 +362,10 @@ void sendUnitMessage(uint8_t payload, uint16_t msgCount, uint8_t unit_flag) {
 void onReceive(int packetSize) {
   if (transmitting && !txDoneFlag) txDoneFlag = true;
   
-  if (packetSize == 0) return;          // Si no hay mensajes, retornamos
+  if (packetSize == 0){
+    Serial.println("Received package length is 0");
+    return;          // Si no hay mensajes, retornamos
+  }
 
   // Leemos los primeros bytes del mensaje
   uint8_t buffer[10];                   // Buffer para almacenar el mensaje
