@@ -1,4 +1,4 @@
-/*
+ /*
  * Código del concentrador
  */
 
@@ -18,7 +18,7 @@ char stringBuf[24];
 const uint8_t localAddress = 0xA0;     // Dirección de este dispositivo
 static uint8_t  destination = 0xFF;            // Dirección de destino, 0xFF es la dirección de broadcast
 
-volatile bool txDoneFlag = true;       // Flag para indicar cuando ha finalizado una transmisión
+volatile bool txDoneFlag = false;       // Flag para indicar cuando ha finalizado una transmisión
 volatile bool transmitting = false;
 
 // Estructura para almacenar la configuración de la radio
@@ -142,7 +142,7 @@ void loop() {
       MatchState ms;
       ms.Target(Buf);
 
-      char bright_result = ms.Match("^bright [0-9]+"); // Orden para modificar el tiempo entre una medida de luz y la siguiente
+      char bright_result = ms.Match("^bright delay [0-9]+"); // Orden para modificar el tiempo entre una medida de luz y la siguiente
       char ultrasound_delay_result = ms.Match("^ultrasound delay [0-9]+"); // Orden para modificar el tiempo entre una medida de ultrasonido y la siguiente
       char ultrasound_unit_result = ms.Match("^ultrasound unit [1-3]"); // Orden para modificar el tiempo entre una medida de ultrasonido y la siguiente
       char thermistor_delay_result = ms.Match("^thermistor delay [0-9]+"); // Orden para modificar el tiempo entre una medida de termistor y la siguiente
@@ -168,7 +168,9 @@ void loop() {
       if (bright_result == REGEXP_MATCHED) { // Modificamos el delay de la fotorresistencia
         destination = 0xB1; // Cambiamos la direccion de destino al sensor de luminosidad
         int spacePositon = input.indexOf(" ");
-        bright_wait = (uint8_t)(input.substring(spacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
+        String aux = input.substring(spacePositon+1);
+        int secondSpacePositon = aux.indexOf(" ");
+        bright_wait = (uint8_t)(aux.substring(secondSpacePositon).toInt());   // Cambiamos el tiempo entre una medida y otra por el monitor serie y lo pasamos a ms
         SerialUSB.println("\n=============================================================");
         SerialUSB.print("The delay between brightness measurements has been changed to: ");
         SerialUSB.print((int)(bright_wait * 1000));
@@ -250,8 +252,14 @@ void loop() {
       }
     }
 
+    if (delay_flag || unit_flag){
+      //Serial.println(delay_flag);
+      //Serial.println(bright_flag);
+    }
+    
+    
     if (delay_flag || unit_flag) {
-      if (!transmitting && ((millis() - lastSendTime_ms) > txInterval_ms)) {
+      if (!transmitting) {
         transmitting = true;
         txDoneFlag = false;
         tx_begin_ms = millis();
